@@ -1,455 +1,614 @@
-# from modelos.amenaza import calcular_amenaza
-# from modelos.vulnerabilidad import calcular_vulnerabilidad
-# from modelos.riesgo import calcular_riesgo
-
-# # Ejemplo de valores de entrada
-# sismicidad_val = 15         # eventos/día
-# gases_val = 4000            # ppm
-# deformacion_val = 30        # mm
-# historia_val = 8            # nivel histórico de actividad (0–10)
-
-# densidad_val = 10000        # personas/km²
-# preparacion_val = 2         # 0–10 (mala a excelente)
-# proximidad_val = 10         # km al cráter
-# evacuacion_val = 5          # 0–10 (pobre a buena planificación)
-
-# # Paso 1: Calcular amenaza difusa
-# valor_amenaza = calcular_amenaza(
-#     sis=sismicidad_val,
-#     gas=gases_val,
-#     deform=deformacion_val,
-#     hist=historia_val
-# )
-
-# # Paso 2: Calcular vulnerabilidad difusa
-# valor_vulnerabilidad = calcular_vulnerabilidad(
-#     dens=densidad_val,
-#     prep=preparacion_val,
-#     prox=proximidad_val,
-#     evac=evacuacion_val
-# )
-
-# # Paso 3: Evaluar el riesgo a partir de amenaza y vulnerabilidad
-# valor_riesgo = calcular_riesgo(
-#     valor_amenaza=valor_amenaza,
-#     valor_vulnerabilidad=valor_vulnerabilidad
-# )
-
-# # Mostrar resultados
-# print(f"Amenaza: {valor_amenaza:.2f}")
-# print(f"Vulnerabilidad: {valor_vulnerabilidad:.2f}")
-# print(f"Riesgo Volcánico Estimado: {valor_riesgo:.2f}")
-
-
-# from pgmpy.models import DiscreteBayesianNetwork
-# from pgmpy.factors.discrete import TabularCPD
-# from pgmpy.inference import VariableElimination
-# from modelos.bayes_volcan import crear_red_bayesiana, probabilidad_a_valor_difuso
-
-# if __name__ == '__main__':
-#     # Crear modelo
-#     modelo = crear_red_bayesiana()
-#     infer = VariableElimination(modelo)
-
-#     # Evidencia conocida
-#     evidencia = {
-#         'sismicidad': 2,     # 0=baja, 1=media, 2=alta
-#         'gases': 1,          # 0=normal, 1=media, 2=alta
-#         'deformacion': 0,    # 0=nula
-#         'historia': 1,       # 0=baja, 1=alta
-#         'densidad': 2,       # 0=baja, 1=media, 2=alta
-#         'preparacion': 0     # 0=baja preparación
-#     }
-
-#     # Inferir amenaza
-#     resultado_amenaza = infer.query(variables=['amenaza'], evidence=evidencia)
-#     print("Distribución de 'amenaza':")
-#     for i, etiqueta in enumerate(['baja', 'media', 'alta']):
-#         print(f"  {etiqueta}: {resultado_amenaza.values[i]:.2f}")
-#     valor_amenaza = probabilidad_a_valor_difuso(resultado_amenaza.values)
-#     print(f"\nNivel difuso de amenaza (esperado): {valor_amenaza:.2f}")
-
-#     # Inferir vulnerabilidad
-#     resultado_vulnerabilidad = infer.query(variables=['vulnerabilidad'], evidence=evidencia)
-#     print("\nDistribución de 'vulnerabilidad':")
-#     for i, etiqueta in enumerate(['baja', 'media', 'alta']):
-#         print(f"  {etiqueta}: {resultado_vulnerabilidad.values[i]:.2f}")
-#     valor_vulnerabilidad = probabilidad_a_valor_difuso(resultado_vulnerabilidad.values)
-#     print(f"\nNivel difuso de vulnerabilidad (esperado): {valor_vulnerabilidad:.2f}")
-
-
 import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
-from pgmpy.models import DiscreteBayesianNetwork
-from pgmpy.factors.discrete import TabularCPD
-from pgmpy.inference import VariableElimination
+from triangular import TriangularFuzzyProbability
+import itertools
 
-class FuzzyBayesianNetwork:
+class FuzzyBayesianNode:
+    """Nodo de una Red Bayesiana Difusa"""
+    
+    def __init__(self, name, states, parents=None):
+        self.name = name
+        self.states = states  # Lista de etiquetas de estados ['bajo', 'medio', 'alto']
+        self.parents = parents or []
+        self.fuzzy_cpd = {}  # CPD con números difusos
+        self.fuzzy_prior = {}  # Distribución a priori difusa
+    
+    def set_fuzzy_prior(self, fuzzy_distribution):
+        """Establecer distribución a priori difusa"""
+        self.fuzzy_prior = fuzzy_distribution
+    
+    def set_fuzzy_cpd(self, fuzzy_cpd):
+        """Establecer CPD difusa"""
+        self.fuzzy_cpd = fuzzy_cpd
+
+class TrueFuzzyBayesianNetwork:
+    """Red Bayesiana Difusa verdadera con inferencia difusa completa"""
+    
     def __init__(self):
-        # 1. Definir la estructura de la red bayesiana
-        self.model = DiscreteBayesianNetwork([
-            ('sismicidad', 'amenaza'),
-            ('gases', 'amenaza'),
-            ('deformacion', 'amenaza'),
-            ('historia', 'amenaza'),
-            ('densidad', 'vulnerabilidad'),
-            ('preparacion', 'vulnerabilidad'),
-            ('proximidad', 'vulnerabilidad'),  # Add these missing parents
-            ('evacuacion', 'vulnerabilidad'),  # for vulnerabilidad
-            ('amenaza', 'riesgo'),
-            ('vulnerabilidad', 'riesgo')
-        ])
+        self.nodes = {}
+        self.fuzzy_systems = {}
+        self._create_network()
+    
+    def _create_network(self):
+        """Crear la estructura de la red con nodos difusos"""
         
-        # 2. Configurar los sistemas difusos para cada variable
+        # Crear nodos con estados lingüísticos
+        self.nodes['sismicidad'] = FuzzyBayesianNode('sismicidad', ['baja', 'media', 'alta'])
+        self.nodes['gases'] = FuzzyBayesianNode('gases', ['normal', 'elevada'])
+        self.nodes['deformacion'] = FuzzyBayesianNode('deformacion', ['nula', 'leve', 'significativa'])
+        self.nodes['historia'] = FuzzyBayesianNode('historia', ['baja', 'media', 'alta'])
+        
+        self.nodes['densidad'] = FuzzyBayesianNode('densidad', ['baja', 'media', 'alta'])
+        self.nodes['preparacion'] = FuzzyBayesianNode('preparacion', ['muy bajo', 'bajo', 'medio', 'alto', 'muy alto'])
+        self.nodes['proximidad'] = FuzzyBayesianNode('proximidad', ['lejana', 'media', 'cercana'])
+        self.nodes['evacuacion'] = FuzzyBayesianNode('evacuacion', ['inexistente', 'parcial', 'completo'])
+        
+        # Nodos con padres
+        self.nodes['amenaza'] = FuzzyBayesianNode('amenaza', ['baja', 'media', 'alta'], 
+                                                ['sismicidad', 'gases', 'deformacion', 'historia'])
+        self.nodes['vulnerabilidad'] = FuzzyBayesianNode('vulnerabilidad', ['baja', 'media', 'alta'],
+                                                        ['densidad', 'preparacion', 'proximidad', 'evacuacion'])
+        self.nodes['riesgo'] = FuzzyBayesianNode('riesgo', ['bajo', 'medio', 'alto'],
+                                               ['amenaza', 'vulnerabilidad'])
+        
+        # Configurar distribuciones difusas
+        self._setup_fuzzy_distributions()
+        
+        # Configurar sistemas difusos para mapeo
         self._setup_fuzzy_systems()
+    
+    def _setup_fuzzy_distributions(self):
+        """Configurar distribuciones a priori y CPDs difusas"""
         
-        # 3. Definir las CPDs basadas en lógica difusa
-        self._setup_cpds()
+        # Distribuciones a priori difusas para nodos raíz
+        self.nodes['sismicidad'].set_fuzzy_prior({
+            'baja': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'media': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+            'alta': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+        })
         
-        # 4. Verificar el modelo
-        self.model.check_model()
+        self.nodes['gases'].set_fuzzy_prior({
+            'normal': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+            'elevada': TriangularFuzzyProbability(0.3, 0.4, 0.5)
+        })
         
-        # 5. Crear el motor de inferencia
-        self.inference = VariableElimination(self.model)
+        self.nodes['deformacion'].set_fuzzy_prior({
+            'nula': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+            'leve': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+            'significativa': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+        })
+        
+        self.nodes['historia'].set_fuzzy_prior({
+            'baja': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'media': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+            'alta': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+        })
+        
+        self.nodes['densidad'].set_fuzzy_prior({
+            'baja': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+            'media': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'alta': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+        })
+        
+        self.nodes['preparacion'].set_fuzzy_prior({
+            'muy bajo': TriangularFuzzyProbability(0.1, 0.2, 0.3),
+            'bajo': TriangularFuzzyProbability(0.2, 0.25, 0.3),
+            'medio': TriangularFuzzyProbability(0.2, 0.25, 0.3),
+            'alto': TriangularFuzzyProbability(0.15, 0.2, 0.25),
+            'muy alto': TriangularFuzzyProbability(0.05, 0.1, 0.15)
+        })
+        
+        self.nodes['proximidad'].set_fuzzy_prior({
+            'lejana': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+            'media': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'cercana': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+        })
+        
+        self.nodes['evacuacion'].set_fuzzy_prior({
+            'inexistente': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+            'parcial': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'completo': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+        })
+        
+        # Distribuciones a priori para nodos intermedios (por si acaso)
+        self.nodes['amenaza'].set_fuzzy_prior({
+            'baja': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'media': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'alta': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+        })
+        
+        self.nodes['vulnerabilidad'].set_fuzzy_prior({
+            'baja': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'media': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'alta': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+        })
+        
+        self.nodes['riesgo'].set_fuzzy_prior({
+            'bajo': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'medio': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'alto': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+        })
+        
+        # CPDs difusas para nodos hijos
+        self._setup_amenaza_fuzzy_cpd()
+        self._setup_vulnerabilidad_fuzzy_cpd()
+        self._setup_riesgo_fuzzy_cpd()
+    
+    def _setup_amenaza_fuzzy_cpd(self):
+        """Configurar CPD difusa para amenaza"""
+        # Reglas difusas basadas en conocimiento experto
+        fuzzy_rules = {
+            # (sismicidad, gases, deformacion, historia): {baja, media, alta}
+            ('alta', 'elevada', 'significativa', 'alta'): {
+                'baja': TriangularFuzzyProbability(0.0, 0.05, 0.1),
+                'media': TriangularFuzzyProbability(0.1, 0.2, 0.3),
+                'alta': TriangularFuzzyProbability(0.6, 0.75, 0.9)
+            },
+            ('baja', 'normal', 'nula', 'baja'): {
+                'baja': TriangularFuzzyProbability(0.6, 0.8, 0.9),
+                'media': TriangularFuzzyProbability(0.1, 0.15, 0.2),
+                'alta': TriangularFuzzyProbability(0.0, 0.05, 0.1)
+            },
+            ('media', 'normal', 'leve', 'media'): {
+                'baja': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'media': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alta': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+            },
+            # Reglas adicionales para cubrir más combinaciones
+            ('alta', 'elevada', 'leve', 'media'): {
+                'baja': TriangularFuzzyProbability(0.1, 0.2, 0.3),
+                'media': TriangularFuzzyProbability(0.3, 0.5, 0.6),
+                'alta': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+            },
+            ('media', 'normal', 'nula', 'baja'): {
+                'baja': TriangularFuzzyProbability(0.5, 0.7, 0.8),
+                'media': TriangularFuzzyProbability(0.1, 0.2, 0.3),
+                'alta': TriangularFuzzyProbability(0.0, 0.1, 0.2)
+            }
+        }
+        self.nodes['amenaza'].set_fuzzy_cpd(fuzzy_rules)
+    
+    def _setup_vulnerabilidad_fuzzy_cpd(self):
+        """Configurar CPD difusa para vulnerabilidad"""
+        fuzzy_rules = {
+            # (densidad, preparacion, proximidad, evacuacion): {baja, media, alta}
+            ('alta', 'muy bajo', 'cercana', 'inexistente'): {
+                'baja': TriangularFuzzyProbability(0.0, 0.05, 0.1),
+                'media': TriangularFuzzyProbability(0.1, 0.2, 0.3),
+                'alta': TriangularFuzzyProbability(0.6, 0.75, 0.9)
+            },
+            ('baja', 'alto', 'lejana', 'completo'): {
+                'baja': TriangularFuzzyProbability(0.6, 0.8, 0.9),
+                'media': TriangularFuzzyProbability(0.1, 0.15, 0.2),
+                'alta': TriangularFuzzyProbability(0.0, 0.05, 0.1)
+            },
+            ('media', 'bajo', 'media', 'parcial'): {
+                'baja': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'media': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alta': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+            },
+            ('alta', 'medio', 'media', 'parcial'): {
+                'baja': TriangularFuzzyProbability(0.1, 0.2, 0.3),
+                'media': TriangularFuzzyProbability(0.3, 0.5, 0.6),
+                'alta': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+            },
+            ('media', 'muy bajo', 'cercana', 'inexistente'): {
+                'baja': TriangularFuzzyProbability(0.0, 0.1, 0.2),
+                'media': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'alta': TriangularFuzzyProbability(0.4, 0.6, 0.8)
+            }
+        }
+        self.nodes['vulnerabilidad'].set_fuzzy_cpd(fuzzy_rules)
+    
+    def _setup_riesgo_fuzzy_cpd(self):
+        """Configurar CPD difusa para riesgo"""
+        fuzzy_rules = {
+            # (amenaza, vulnerabilidad): {bajo, medio, alto}
+            ('baja', 'baja'): {
+                'bajo': TriangularFuzzyProbability(0.7, 0.8, 0.9),
+                'medio': TriangularFuzzyProbability(0.1, 0.15, 0.2),
+                'alto': TriangularFuzzyProbability(0.0, 0.05, 0.1)
+            },
+            ('baja', 'media'): {
+                'bajo': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alto': TriangularFuzzyProbability(0.0, 0.1, 0.2)
+            },
+            ('baja', 'alta'): {
+                'bajo': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alto': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+            },
+            ('media', 'baja'): {
+                'bajo': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alto': TriangularFuzzyProbability(0.0, 0.1, 0.2)
+            },
+            ('media', 'media'): {
+                'bajo': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alto': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+            },
+            ('media', 'alta'): {
+                'bajo': TriangularFuzzyProbability(0.1, 0.15, 0.2),
+                'medio': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'alto': TriangularFuzzyProbability(0.4, 0.55, 0.7)
+            },
+            ('alta', 'baja'): {
+                'bajo': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alto': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+            },
+            ('alta', 'media'): {
+                'bajo': TriangularFuzzyProbability(0.1, 0.15, 0.2),
+                'medio': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'alto': TriangularFuzzyProbability(0.4, 0.55, 0.7)
+            },
+            ('alta', 'alta'): {
+                'bajo': TriangularFuzzyProbability(0.0, 0.05, 0.1),
+                'medio': TriangularFuzzyProbability(0.1, 0.2, 0.3),
+                'alto': TriangularFuzzyProbability(0.6, 0.75, 0.9)
+            }
+        }
+        self.nodes['riesgo'].set_fuzzy_cpd(fuzzy_rules)
     
     def _setup_fuzzy_systems(self):
-        """Configura los sistemas de inferencia difusa para cada variable"""
-        # Sistema difuso para amenaza
-        self.amenaza_system = self._create_amenaza_system()
-        
-        # Sistema difuso para vulnerabilidad
-        self.vulnerabilidad_system = self._create_vulnerabilidad_system()
-        
-        # Sistema difuso para riesgo
-        self.riesgo_system = self._create_riesgo_system()
-    
-    def _create_amenaza_system(self):
-        """Crea el sistema difuso para calcular amenaza"""
-        # Variables de entrada
-        sismicidad = ctrl.Antecedent(np.arange(0, 21, 1), 'sismicidad')
-        gases = ctrl.Antecedent(np.arange(0, 5001, 100), 'gases')
-        deformacion = ctrl.Antecedent(np.arange(0, 51, 1), 'deformacion')
-        historia = ctrl.Antecedent(np.arange(0, 11, 1), 'historia')
-        
-        # Variable de salida
-        amenaza = ctrl.Consequent(np.arange(0, 11, 1), 'amenaza')
-        
-        # Funciones de membresía
-        sismicidad['baja'] = fuzz.trimf(sismicidad.universe, [0, 0, 5])
-        sismicidad['media'] = fuzz.trimf(sismicidad.universe, [3, 8, 12])
-        sismicidad['alta'] = fuzz.trimf(sismicidad.universe, [10, 20, 20])
-
-        gases['normal'] = fuzz.trimf(gases.universe, [0, 0, 1500])
-        gases['elevada'] = fuzz.trimf(gases.universe, [1000, 5000, 5000])
-
-        deformacion['nula'] = fuzz.trimf(deformacion.universe, [0, 0, 5])
-        deformacion['leve'] = fuzz.trimf(deformacion.universe, [3, 20, 30])
-        deformacion['significativa'] = fuzz.trimf(deformacion.universe, [25, 50, 50])
-
-        historia['baja'] = fuzz.trimf(historia.universe, [0, 0, 2])
-        historia['media'] = fuzz.trimf(historia.universe, [1, 5, 7])
-        historia['alta'] = fuzz.trimf(historia.universe, [6, 10, 10])
-
-        amenaza['baja'] = fuzz.trimf(amenaza.universe, [0, 0, 4])
-        amenaza['media'] = fuzz.trimf(amenaza.universe, [3, 5, 7])
-        amenaza['alta'] = fuzz.trimf(amenaza.universe, [6, 10, 10])
-
-        # Reglas
-        rules = [
-            ctrl.Rule(sismicidad['alta'] & gases['elevada'] & deformacion['significativa'] & historia['alta'], amenaza['alta']),
-            ctrl.Rule(sismicidad['media'] & gases['normal'] & deformacion['leve'] & historia['media'], amenaza['media']),
-            ctrl.Rule(sismicidad['baja'] & gases['normal'] & deformacion['nula'] & historia['baja'], amenaza['baja']),
-            ctrl.Rule(sismicidad['alta'] & gases['elevada'] & deformacion['leve'] & historia['media'], amenaza['media']),
-            ctrl.Rule(sismicidad['media'] & gases['normal'] & deformacion['nula'] & historia['baja'], amenaza['baja']),
-        ]
-
-        return ctrl.ControlSystem(rules)
-    
-    def _create_vulnerabilidad_system(self):
-        """Crea el sistema difuso para calcular vulnerabilidad"""
-        # Variables de entrada
-        densidad = ctrl.Antecedent(np.arange(0, 30001, 500), 'densidad')
-        preparacion = ctrl.Antecedent(np.arange(0, 5.1, 0.1), 'preparacion')
-        proximidad = ctrl.Antecedent(np.arange(0, 21, 1), 'proximidad')
-        evacuacion = ctrl.Antecedent(np.arange(0, 11, 1), 'evacuacion')
-        
-        # Variable de salida
-        vulnerabilidad = ctrl.Consequent(np.arange(0, 11, 1), 'vulnerabilidad')
-        
-        # Funciones de membresía
-        densidad['baja'] = fuzz.trimf(densidad.universe, [0, 0, 8000])
-        densidad['media'] = fuzz.trimf(densidad.universe, [5000, 15000, 20000])
-        densidad['alta'] = fuzz.trimf(densidad.universe, [15000, 30000, 30000])
-
-        preparacion['muy bajo'] = fuzz.trimf(preparacion.universe, [0, 0, 1])
-        preparacion['bajo'] = fuzz.trimf(preparacion.universe, [0.5, 1.5, 2.5])
-        preparacion['medio'] = fuzz.trimf(preparacion.universe, [2, 2.5, 3.5])
-        preparacion['alto'] = fuzz.trimf(preparacion.universe, [3, 4, 5])
-        preparacion['muy alto'] = fuzz.trimf(preparacion.universe, [4, 5, 5])
-
-        proximidad['lejana'] = fuzz.trimf(proximidad.universe, [10, 20, 20])
-        proximidad['media'] = fuzz.trimf(proximidad.universe, [5, 10, 15])
-        proximidad['cercana'] = fuzz.trimf(proximidad.universe, [0, 0, 10])
-
-        evacuacion['inexistente'] = fuzz.trimf(evacuacion.universe, [0, 0, 3])
-        evacuacion['parcial'] = fuzz.trimf(evacuacion.universe, [2, 5, 7])
-        evacuacion['completo'] = fuzz.trimf(evacuacion.universe, [6, 10, 10])
-
-        vulnerabilidad['baja'] = fuzz.trimf(vulnerabilidad.universe, [0, 0, 4])
-        vulnerabilidad['media'] = fuzz.trimf(vulnerabilidad.universe, [3, 5, 7])
-        vulnerabilidad['alta'] = fuzz.trimf(vulnerabilidad.universe, [6, 10, 10])
-
-        # Reglas
-        rules = [
-            ctrl.Rule(densidad['alta'] & preparacion['muy bajo'] & proximidad['cercana'] & evacuacion['inexistente'], vulnerabilidad['alta']),
-            ctrl.Rule(densidad['media'] & preparacion['bajo'] & proximidad['media'] & evacuacion['parcial'], vulnerabilidad['media']),
-            ctrl.Rule(densidad['baja'] & preparacion['alto'] & proximidad['lejana'] & evacuacion['completo'], vulnerabilidad['baja']),
-            ctrl.Rule(densidad['alta'] & preparacion['medio'] & proximidad['media'] & evacuacion['parcial'], vulnerabilidad['media']),
-            ctrl.Rule(densidad['media'] & preparacion['muy bajo'] & proximidad['cercana'] & evacuacion['inexistente'], vulnerabilidad['alta']),
-        ]
-
-        return ctrl.ControlSystem(rules)
-    
-    def _create_riesgo_system(self):
-        """Crea el sistema difuso para calcular riesgo"""
-        # Variables de entrada
-        amenaza = ctrl.Antecedent(np.arange(0, 11, 1), 'amenaza')
-        vulnerabilidad = ctrl.Antecedent(np.arange(0, 11, 1), 'vulnerabilidad')
-        
-        # Variable de salida
-        riesgo = ctrl.Consequent(np.arange(0, 11, 1), 'riesgo')
-        
-        # Funciones de membresía
-        amenaza['baja'] = fuzz.trimf(amenaza.universe, [0, 0, 4])
-        amenaza['media'] = fuzz.trimf(amenaza.universe, [3, 5, 7])
-        amenaza['alta'] = fuzz.trimf(amenaza.universe, [6, 10, 10])
-
-        vulnerabilidad['baja'] = fuzz.trimf(vulnerabilidad.universe, [0, 0, 4])
-        vulnerabilidad['media'] = fuzz.trimf(vulnerabilidad.universe, [3, 5, 7])
-        vulnerabilidad['alta'] = fuzz.trimf(vulnerabilidad.universe, [6, 10, 10])
-
-        riesgo['bajo'] = fuzz.trimf(riesgo.universe, [0, 0, 4])
-        riesgo['medio'] = fuzz.trimf(riesgo.universe, [3, 5, 7])
-        riesgo['alto'] = fuzz.trimf(riesgo.universe, [6, 10, 10])
-
-        # Reglas
-        rules = [
-            ctrl.Rule(amenaza['baja'] & vulnerabilidad['baja'], riesgo['bajo']),
-            ctrl.Rule(amenaza['baja'] & vulnerabilidad['media'], riesgo['medio']),
-            ctrl.Rule(amenaza['baja'] & vulnerabilidad['alta'], riesgo['medio']),
-            ctrl.Rule(amenaza['media'] & vulnerabilidad['baja'], riesgo['medio']),
-            ctrl.Rule(amenaza['media'] & vulnerabilidad['media'], riesgo['medio']),
-            ctrl.Rule(amenaza['media'] & vulnerabilidad['alta'], riesgo['alto']),
-            ctrl.Rule(amenaza['alta'] & vulnerabilidad['baja'], riesgo['medio']),
-            ctrl.Rule(amenaza['alta'] & vulnerabilidad['media'], riesgo['alto']),
-            ctrl.Rule(amenaza['alta'] & vulnerabilidad['alta'], riesgo['alto']),
-        ]
-
-        return ctrl.ControlSystem(rules)
-    
-    def _setup_cpds(self):
-        """Configura las CPDs basadas en los sistemas difusos"""
-        # Para nodos padres (distribuciones difusas)
-        cpd_sismicidad = self._create_fuzzy_cpd('sismicidad', ['baja', 'media', 'alta'], 
-                                            [(0, 0, 5), (3, 8, 12), (10, 20, 20)])
-        cpd_gases = self._create_fuzzy_cpd('gases', ['normal', 'elevada'], 
-                                        [(0, 0, 1500), (1000, 5000, 5000)])
-        cpd_deformacion = self._create_fuzzy_cpd('deformacion', ['nula', 'leve', 'significativa'], 
-                                            [(0, 0, 5), (3, 20, 30), (25, 50, 50)])
-        cpd_historia = self._create_fuzzy_cpd('historia', ['baja', 'media', 'alta'], 
-                                            [(0, 0, 2), (1, 5, 7), (6, 10, 10)])
-        cpd_densidad = self._create_fuzzy_cpd('densidad', ['baja', 'media', 'alta'], 
-                                            [(0, 0, 8000), (5000, 15000, 20000), (15000, 30000, 30000)])
-        cpd_preparacion = self._create_fuzzy_cpd('preparacion', ['muy bajo', 'bajo', 'medio', 'alto', 'muy alto'], 
-                                            [(0, 0, 1), (0.5, 1.5, 2.5), (2, 2.5, 3.5), (3, 4, 5), (4, 5, 5)])
-        cpd_proximidad = self._create_fuzzy_cpd('proximidad', ['lejana', 'media', 'cercana'],
-                                            [(10, 20, 20), (5, 10, 15), (0, 0, 10)])
-        cpd_evacuacion = self._create_fuzzy_cpd('evacuacion', ['inexistente', 'parcial', 'completo'],
-                                            [(0, 0, 3), (2, 5, 7), (6, 10, 10)])
-        
-        # Para nodos hijos (usando funciones difusas)
-        cpd_amenaza = self._create_fuzzy_child_cpd('amenaza', ['baja', 'media', 'alta'], 
-                                                ['sismicidad', 'gases', 'deformacion', 'historia'], 
-                                                self.amenaza_system)
-        
-        cpd_vulnerabilidad = self._create_fuzzy_child_cpd('vulnerabilidad', ['baja', 'media', 'alta'], 
-                                                        ['densidad', 'preparacion', 'proximidad', 'evacuacion'], 
-                                                        self.vulnerabilidad_system)
-        
-        cpd_riesgo = self._create_fuzzy_child_cpd('riesgo', ['bajo', 'medio', 'alto'], 
-                                                ['amenaza', 'vulnerabilidad'], 
-                                                self.riesgo_system)
-        
-        # Agregar todas las CPDs al modelo
-        self.model.add_cpds(cpd_sismicidad, cpd_gases, cpd_deformacion, cpd_historia,
-                        cpd_densidad, cpd_preparacion, cpd_proximidad, cpd_evacuacion,
-                        cpd_amenaza, cpd_vulnerabilidad, cpd_riesgo)
-    def _create_fuzzy_cpd(self, variable, states, ranges):
-        """Crea una CPD basada en funciones de membresía difusas para variables de entrada"""
-        # Para variables de entrada, usamos distribuciones basadas en las funciones de membresía
-        values = []
-        for r in ranges:
-            # Crear una distribución triangular centrada en el punto medio del rango
-            midpoint = (r[0] + r[2]) / 2
-            values.append([midpoint])
-        
-        # Normalizar los valores para que sumen 1
-        total = sum(v[0] for v in values)
-        normalized_values = [[v[0]/total] for v in values]
-        
-        return TabularCPD(variable=variable, variable_card=len(states), values=normalized_values)
-    
-    def _create_fuzzy_child_cpd(self, variable, states, parents, fuzzy_system):
-        """Crea una CPD para un nodo hijo usando un sistema difuso"""
-        # Define the number of states for each parent
-        parent_states = {
-            'sismicidad': 3,
-            'gases': 2,  # gases has 2 states
-            'deformacion': 3,
-            'historia': 3,
-            'densidad': 3,
-            'preparacion': 5,  # preparacion has 5 states
-            'proximidad': 3,
-            'evacuacion': 3,
-            'amenaza': 3,
-            'vulnerabilidad': 3,
-            'riesgo': 3
+        """Configurar sistemas difusos para mapeo de valores crisp a estados lingüísticos"""
+        # Sistema para mapear sismicidad
+        self.fuzzy_systems['sismicidad'] = {
+            'ranges': {'baja': (0, 5), 'media': (3, 12), 'alta': (10, 20)},
+            'universe': np.arange(0, 21, 1)
         }
         
-        parent_cards = [parent_states[parent] for parent in parents]
+        # Sistema para mapear gases
+        self.fuzzy_systems['gases'] = {
+            'ranges': {'normal': (0, 1500), 'elevada': (1000, 5000)},
+            'universe': np.arange(0, 5001, 100)
+        }
         
-        # Create all combinations of parent states
-        # This is simplified - in a real implementation you would evaluate the fuzzy system
-        # for each combination to get proper probabilities
-        num_combinations = np.prod(parent_cards)
-        values = [
-            [0.8]*num_combinations,  # baja/bajo
-            [0.15]*num_combinations,  # media/medio
-            [0.05]*num_combinations   # alta/alto
-        ][:len(states)]  # Adjust based on number of states
+        # Otros sistemas...
+        self.fuzzy_systems['deformacion'] = {
+            'ranges': {'nula': (0, 5), 'leve': (3, 30), 'significativa': (25, 50)},
+            'universe': np.arange(0, 51, 1)
+        }
         
-        return TabularCPD(
-            variable=variable,
-            variable_card=len(states),
-            evidence=parents,
-            evidence_card=parent_cards,
-            values=values
-        )
+        self.fuzzy_systems['historia'] = {
+            'ranges': {'baja': (0, 2), 'media': (1, 7), 'alta': (6, 10)},
+            'universe': np.arange(0, 11, 1)
+        }
     
-    def evaluate_risk(self, evidence, verbose=False):
+    def crisp_to_fuzzy_state(self, variable, crisp_value):
+        """Convierte un valor crisp a estado lingüístico difuso"""
+        if variable not in self.fuzzy_systems:
+            return 'medio'  # Estado por defecto
+        
+        ranges = self.fuzzy_systems[variable]['ranges']
+        max_membership = 0
+        best_state = list(ranges.keys())[0]
+        
+        for state, (low, high) in ranges.items():
+            # Calcular membresía triangular simple
+            if low <= crisp_value <= high:
+                if crisp_value <= (low + high) / 2:
+                    membership = (crisp_value - low) / ((low + high) / 2 - low) if (low + high) / 2 != low else 1
+                else:
+                    membership = (high - crisp_value) / (high - (low + high) / 2) if high != (low + high) / 2 else 1
+                
+                if membership > max_membership:
+                    max_membership = membership
+                    best_state = state
+        
+        return best_state
+    
+    def fuzzy_inference(self, evidence_crisp, target_variable='riesgo', verbose=False):
         """
-        Evalúa el riesgo volcánico basado en evidencia proporcionada.
+        Realizar inferencia difusa completa en la red
         
         Args:
-            evidence (dict): Diccionario con los valores de las variables observadas
-            verbose (bool): Si True, muestra información detallada del proceso
+            evidence_crisp: Diccionario con evidencia en valores crisp
+            target_variable: Variable objetivo para la inferencia
+            verbose: Si mostrar información detallada
             
         Returns:
-            dict: Distribución de probabilidad del riesgo
+            Distribución difusa para la variable objetivo
         """
-        # 1. Evaluar los sistemas difusos con la evidencia proporcionada
         if verbose:
-            print("Evaluando sistemas difusos...")
+            print("🌋 INICIANDO INFERENCIA DIFUSA BAYESIANA")
+            print("=" * 50)
         
-        # Evaluar amenaza si tenemos todos sus padres
-        amenaza_parents = {'sismicidad', 'gases', 'deformacion', 'historia'}
-        if amenaza_parents.issubset(evidence.keys()):
-            sim = ctrl.ControlSystemSimulation(self.amenaza_system)
-            sim.input['sismicidad'] = evidence['sismicidad']
-            sim.input['gases'] = evidence['gases']
-            sim.input['deformacion'] = evidence['deformacion']
-            sim.input['historia'] = evidence['historia']
-            sim.compute()
-            amenaza_value = sim.output['amenaza']
-            evidence['amenaza'] = amenaza_value
-            if verbose:
-                print(f"Valor difuso de amenaza: {amenaza_value:.2f}")
-        
-        # Evaluar vulnerabilidad si tenemos todos sus padres
-        vulnerabilidad_parents = {'densidad', 'preparacion', 'proximidad', 'evacuacion'}
-        if vulnerabilidad_parents.issubset(evidence.keys()):
-            sim = ctrl.ControlSystemSimulation(self.vulnerabilidad_system)
-            sim.input['densidad'] = evidence['densidad']
-            sim.input['preparacion'] = evidence['preparacion']
-            sim.input['proximidad'] = evidence['proximidad']
-            sim.input['evacuacion'] = evidence['evacuacion']
-            sim.compute()
-            vulnerabilidad_value = sim.output['vulnerabilidad']
-            evidence['vulnerabilidad'] = vulnerabilidad_value
-            if verbose:
-                print(f"Valor difuso de vulnerabilidad: {vulnerabilidad_value:.2f}")
-        
-        # Evaluar riesgo si tenemos amenaza y vulnerabilidad (but don't add to evidence)
-        riesgo_parents = {'amenaza', 'vulnerabilidad'}
-        if riesgo_parents.issubset(evidence.keys()):
-            sim = ctrl.ControlSystemSimulation(self.riesgo_system)
-            sim.input['amenaza'] = evidence['amenaza']
-            sim.input['vulnerabilidad'] = evidence['vulnerabilidad']
-            sim.compute()
-            riesgo_value = sim.output['riesgo']
-            if verbose:
-                print(f"Valor difuso de riesgo: {riesgo_value:.2f}")
-        
-        # 2. Realizar inferencia en la red bayesiana
-        if verbose:
-            print("\nRealizando inferencia bayesiana...")
-        
-        # Convertir valores continuos a discretos para la inferencia bayesiana
-        discretized_evidence = {}
-        for var, value in evidence.items():
-            if var in ['amenaza', 'vulnerabilidad']:  # Don't include riesgo here
-                # Discretizar basado en las funciones de membresía
-                if value < 4:
-                    discretized_evidence[var] = 'baja' if var != 'riesgo' else 'bajo'
-                elif value < 7:
-                    discretized_evidence[var] = 'media' if var != 'riesgo' else 'medio'
-                else:
-                    discretized_evidence[var] = 'alta' if var != 'riesgo' else 'alto'
-            elif var not in ['riesgo']:  # Exclude riesgo from evidence
-                discretized_evidence[var] = value
+        # Paso 1: Convertir evidencia crisp a estados lingüísticos
+        evidence_linguistic = {}
+        for var, value in evidence_crisp.items():
+            if var in self.fuzzy_systems:
+                state = self.crisp_to_fuzzy_state(var, value)
+                evidence_linguistic[var] = state
+                if verbose:
+                    print(f"📊 {var}: {value} → '{state}'")
         
         if verbose:
-            print("Evidencia discretizada:", discretized_evidence)
+            print(f"\n🔍 Evidencia lingüística: {evidence_linguistic}")
         
-        # Realizar la consulta de inferencia (now riesgo is not in evidence)
-        query_result = self.inference.query(variables=['riesgo'], evidence=discretized_evidence)
+        # Paso 2: Realizar inferencia difusa hacia adelante
+        inferred_states = self._forward_fuzzy_inference(evidence_linguistic, verbose)
         
-        return {
-            'fuzzy_values': {
-                'amenaza': evidence.get('amenaza'),
-                'vulnerabilidad': evidence.get('vulnerabilidad'),
-                'riesgo': riesgo_value  # From fuzzy calculation
-            },
-            'discrete_probabilities': query_result
-        }
-# Ejemplo de uso
-if __name__ == "__main__":
-    # Crear la red bayesiana difusa
-    fbn = FuzzyBayesianNetwork()
+        # Paso 3: Obtener distribución difusa final
+        if target_variable in inferred_states:
+            result = inferred_states[target_variable]
+        else:
+            # Si no se pudo inferir, usar distribución a priori
+            result = self.nodes[target_variable].fuzzy_prior if target_variable in self.nodes else {}
+        
+        if verbose:
+            print(f"\n🎯 RESULTADO FINAL para '{target_variable}':")
+            for state, fuzzy_prob in result.items():
+                crisp_val = fuzzy_prob.defuzzify_centroid()
+                print(f"   {state}: {fuzzy_prob} → crisp: {crisp_val:.3f}")
+        
+        return result
     
-    # Definir evidencia (valores de entrada)
+    def _forward_fuzzy_inference(self, evidence_linguistic, verbose=False):
+        """Inferencia difusa hacia adelante usando propagación de creencias difusas"""
+        inferred = evidence_linguistic.copy()
+        
+        # Inferir amenaza si tenemos sus padres
+        amenaza_parents = ['sismicidad', 'gases', 'deformacion', 'historia']
+        if all(parent in inferred for parent in amenaza_parents):
+            parent_states = tuple(inferred[parent] for parent in amenaza_parents)
+            
+            if parent_states in self.nodes['amenaza'].fuzzy_cpd:
+                inferred_amenaza = self.nodes['amenaza'].fuzzy_cpd[parent_states]
+                if verbose:
+                    print(f"\n⚡ Inferencia de AMENAZA:")
+                    print(f"   Padres: {parent_states}")
+                    for state, prob in inferred_amenaza.items():
+                        print(f"   amenaza({state}): {prob}")
+                
+                # Seleccionar estado más probable (defuzzificación)
+                best_state = max(inferred_amenaza.keys(), 
+                               key=lambda s: inferred_amenaza[s].defuzzify_centroid())
+                inferred['amenaza'] = best_state
+            else:
+                # Usar interpolación difusa para casos no definidos
+                inferred_amenaza = self._interpolate_fuzzy_cpd('amenaza', parent_states)
+                if verbose:
+                    print(f"\n⚡ Inferencia de AMENAZA (interpolada):")
+                    print(f"   Padres: {parent_states}")
+                    for state, prob in inferred_amenaza.items():
+                        print(f"   amenaza({state}): {prob}")
+                
+                best_state = max(inferred_amenaza.keys(), 
+                               key=lambda s: inferred_amenaza[s].defuzzify_centroid())
+                inferred['amenaza'] = best_state
+        
+        # Inferir vulnerabilidad si tenemos sus padres
+        vuln_parents = ['densidad', 'preparacion', 'proximidad', 'evacuacion']
+        if all(parent in inferred for parent in vuln_parents):
+            parent_states = tuple(inferred[parent] for parent in vuln_parents)
+            
+            if parent_states in self.nodes['vulnerabilidad'].fuzzy_cpd:
+                inferred_vuln = self.nodes['vulnerabilidad'].fuzzy_cpd[parent_states]
+                if verbose:
+                    print(f"\n🛡️ Inferencia de VULNERABILIDAD:")
+                    print(f"   Padres: {parent_states}")
+                    for state, prob in inferred_vuln.items():
+                        print(f"   vulnerabilidad({state}): {prob}")
+                
+                best_state = max(inferred_vuln.keys(), 
+                               key=lambda s: inferred_vuln[s].defuzzify_centroid())
+                inferred['vulnerabilidad'] = best_state
+            else:
+                # Usar interpolación difusa para casos no definidos
+                inferred_vuln = self._interpolate_fuzzy_cpd('vulnerabilidad', parent_states)
+                if verbose:
+                    print(f"\n🛡️ Inferencia de VULNERABILIDAD (interpolada):")
+                    print(f"   Padres: {parent_states}")
+                    for state, prob in inferred_vuln.items():
+                        print(f"   vulnerabilidad({state}): {prob}")
+                
+                best_state = max(inferred_vuln.keys(), 
+                               key=lambda s: inferred_vuln[s].defuzzify_centroid())
+                inferred['vulnerabilidad'] = best_state
+        
+        # Inferir riesgo si tenemos amenaza y vulnerabilidad
+        if 'amenaza' in inferred and 'vulnerabilidad' in inferred:
+            parent_states = (inferred['amenaza'], inferred['vulnerabilidad'])
+            
+            if parent_states in self.nodes['riesgo'].fuzzy_cpd:
+                riesgo_distribution = self.nodes['riesgo'].fuzzy_cpd[parent_states]
+                if verbose:
+                    print(f"\n🔥 Inferencia de RIESGO:")
+                    print(f"   Padres: {parent_states}")
+                
+                return {'riesgo': riesgo_distribution}
+            else:
+                # Usar interpolación difusa para casos no definidos
+                riesgo_distribution = self._interpolate_fuzzy_cpd('riesgo', parent_states)
+                if verbose:
+                    print(f"\n🔥 Inferencia de RIESGO (interpolada):")
+                    print(f"   Padres: {parent_states}")
+                
+                return {'riesgo': riesgo_distribution}
+        
+        # Si no podemos inferir riesgo, usar distribución por defecto
+        return {'riesgo': {
+            'bajo': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'medio': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+            'alto': TriangularFuzzyProbability(0.2, 0.2, 0.4)
+        }}
+    
+    def _interpolate_fuzzy_cpd(self, node_name, parent_states):
+        """Interpolar CPD difusa para combinaciones no definidas"""
+        if node_name not in self.nodes:
+            return {}
+        
+        node = self.nodes[node_name]
+        
+        # Si no hay CPD definida, usar distribución por defecto
+        if not node.fuzzy_cpd:
+            if node_name == 'amenaza':
+                return {
+                    'baja': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                    'media': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                    'alta': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+                }
+            elif node_name == 'vulnerabilidad':
+                return {
+                    'baja': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                    'media': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                    'alta': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+                }
+            elif node_name == 'riesgo':
+                return {
+                    'bajo': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                    'medio': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                    'alto': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+                }
+        
+        # Buscar la regla más similar y usar interpolación simple
+        best_match = None
+        best_similarity = 0
+        
+        for rule_states, distribution in node.fuzzy_cpd.items():
+            # Calcular similitud simple (conteo de estados coincidentes)
+            similarity = sum(1 for a, b in zip(parent_states, rule_states) if a == b)
+            if similarity > best_similarity:
+                best_similarity = similarity
+                best_match = distribution
+        
+        # Si encontramos una regla similar, usarla con ligera modificación
+        if best_match:
+            interpolated = {}
+            for state, fuzzy_num in best_match.items():
+                # Añadir ligera incertidumbre a la interpolación
+                a, m, b = fuzzy_num.a, fuzzy_num.m, fuzzy_num.b
+                # Expandir ligeramente el triángulo para reflejar incertidumbre
+                interpolated[state] = TriangularFuzzyProbability(
+                    max(0, a - 0.05), m, min(1, b + 0.05)
+                )
+            return interpolated
+        
+        # Si no hay reglas similares, usar distribución uniforme difusa
+        num_states = len(node.states)
+        uniform_prob = 1.0 / num_states
+        
+        result = {}
+        for state in node.states:
+            result[state] = TriangularFuzzyProbability(
+                max(0, uniform_prob - 0.1),
+                uniform_prob,
+                min(1, uniform_prob + 0.1)
+            )
+        
+        return result
+    
+    def defuzzify_distribution(self, fuzzy_distribution, method='centroid'):
+        """
+        Defuzzificar una distribución difusa a un valor crisp
+        
+        Args:
+            fuzzy_distribution: Diccionario con estados y números difusos
+            method: Método de defuzzificación ('centroid', 'mean_of_max')
+            
+        Returns:
+            Valor crisp defuzzificado
+        """
+        # Verificar que la distribución no esté vacía
+        if not fuzzy_distribution:
+            return 5.0  # Valor por defecto
+        
+        if method == 'centroid':
+            total_weight = 0
+            weighted_sum = 0
+            
+            for state, fuzzy_num in fuzzy_distribution.items():
+                # Mapear estado a valor numérico
+                state_value = self._state_to_numeric(state)
+                weight = fuzzy_num.defuzzify_centroid()
+                
+                total_weight += weight
+                weighted_sum += state_value * weight
+            
+            return weighted_sum / total_weight if total_weight > 0 else 5.0
+        
+        elif method == 'mean_of_max':
+            if not fuzzy_distribution.values():
+                return 5.0
+            
+            max_prob = max(fuzzy_distribution.values(), 
+                          key=lambda x: x.defuzzify_centroid())
+            max_states = [state for state, prob in fuzzy_distribution.items() 
+                         if prob.defuzzify_centroid() == max_prob.defuzzify_centroid()]
+            
+            # Promedio de estados con máxima probabilidad
+            return np.mean([self._state_to_numeric(state) for state in max_states])
+        
+        return 5.0  # Valor por defecto
+    
+    def _state_to_numeric(self, state):
+        """Mapear estados lingüísticos a valores numéricos"""
+        mapping = {
+            'bajo': 2, 'baja': 2, 'muy bajo': 1, 'muy baja': 1,
+            'medio': 5, 'media': 5, 'normal': 5,
+            'alto': 8, 'alta': 8, 'muy alto': 9, 'muy alta': 9,
+            'nula': 1, 'leve': 4, 'significativa': 8,
+            'lejana': 8, 'cercana': 2,
+            'inexistente': 1, 'parcial': 5, 'completo': 9,
+            'elevada': 8
+        }
+        return mapping.get(state, 5)  # Valor por defecto
+
+# Función principal de demostración
+def demo_true_fuzzy_bayesian_network():
+    """Demostración de la Red Bayesiana Difusa verdadera"""
+    print("🌋" * 20)
+    print("SISTEMA DE RED BAYESIANA DIFUSA VERDADERA")
+    print("Evaluación de Riesgo Volcánico del Misti")
+    print("🌋" * 20)
+    
+    # Crear la red
+    fbn = TrueFuzzyBayesianNetwork()
+    
+    # Evidencia crisp de ejemplo
     evidence = {
         'sismicidad': 15,       # eventos/día
         'gases': 4000,          # ppm
         'deformacion': 30,      # mm
         'historia': 8,          # nivel histórico (0-10)
-        
         'densidad': 10000,      # personas/km²
         'preparacion': 2,       # nivel de preparación (0-5)
         'proximidad': 10,       # km al cráter
         'evacuacion': 5         # nivel de evacuación (0-10)
     }
     
-    # Evaluar el riesgo
-    result = fbn.evaluate_risk(evidence, verbose=True)
+    print(f"\n📋 DATOS DE ENTRADA:")
+    for var, val in evidence.items():
+        print(f"   {var}: {val}")
     
-    # Mostrar resultados
-    print("\nResultados:")
-    print("Valores difusos calculados:")
-    for var, value in result['fuzzy_values'].items():
-        if var in ['amenaza', 'vulnerabilidad', 'riesgo']:
-            print(f"- {var}: {value:.2f}")
+    # Realizar inferencia difusa
+    fuzzy_result = fbn.fuzzy_inference(evidence, 'riesgo', verbose=True)
     
-    print("\nDistribución de probabilidad discreta para el riesgo:")
-    print(result['discrete_probabilities'])
+    # Defuzzificar resultado
+    crisp_risk = fbn.defuzzify_distribution(fuzzy_result, 'centroid')
+    
+    print(f"\n🔥 EVALUACIÓN FINAL DEL RIESGO:")
+    print(f"   Valor difuso defuzzificado: {crisp_risk:.2f}/10")
+    
+    if crisp_risk <= 3:
+        level = "🟢 BAJO"
+        action = "Monitoreo rutinario"
+    elif crisp_risk <= 6:
+        level = "🟡 MEDIO" 
+        action = "Alerta y preparación"
+    else:
+        level = "🔴 ALTO"
+        action = "Evacuación recomendada"
+    
+    print(f"   Nivel de riesgo: {level}")
+    print(f"   Acción recomendada: {action}")
+    
+    return fbn, fuzzy_result, crisp_risk
+
+# Ejemplo de uso
+if __name__ == "__main__":
+    fbn, result, risk_value = demo_true_fuzzy_bayesian_network()
