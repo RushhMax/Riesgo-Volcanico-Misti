@@ -9,7 +9,7 @@ amenaza_media = fuzz.trimf(x_amenaza, [3, 5, 7])
 amenaza_alta = fuzz.trimf(x_amenaza, [6, 10, 10])
 
 # Graficar
-graficar_fuzzy(x_amenaza, [amenaza_baja, amenaza_media, amenaza_alta], ['Baja', 'Media', 'Alta'], 'Amenaza volcánica', 'Nivel')
+# graficar_fuzzy(x_amenaza, [amenaza_baja, amenaza_media, amenaza_alta], ['Baja', 'Media', 'Alta'], 'Amenaza volcánica', 'Nivel')
 
 
 # Variable intermedia: Vulnerabilidad social (0–10)
@@ -19,7 +19,7 @@ vuln_media = fuzz.trimf(x_vuln, [3, 5, 7])
 vuln_alta = fuzz.trimf(x_vuln, [6, 10, 10])
 
 # Graficar
-graficar_fuzzy(x_vuln, [vuln_baja, vuln_media, vuln_alta], ['Baja', 'Media', 'Alta'], 'Vulnerabilidad social', 'Nivel')
+# graficar_fuzzy(x_vuln, [vuln_baja, vuln_media, vuln_alta], ['Baja', 'Media', 'Alta'], 'Vulnerabilidad social', 'Nivel')
 
 # Variable final: Riesgo volcánico (0–10)
 x_riesgo = np.arange(0, 11, 1)
@@ -28,4 +28,4 @@ riesgo_medio = fuzz.trimf(x_riesgo, [3, 5, 7])
 riesgo_alto = fuzz.trimf(x_riesgo, [6, 10, 10])
 
 # Graficar
-graficar_fuzzy(x_riesgo, [riesgo_bajo, riesgo_medio, riesgo_alto], ['Bajo', 'Medio', 'Alto'], 'Riesgo volcánico', 'Nivel')
+# graficar_fuzzy(x_riesgo, [riesgo_bajo, riesgo_medio, riesgo_alto], ['Bajo', 'Medio', 'Alto'], 'Riesgo volcánico', 'Nivel')

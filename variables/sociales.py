@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from graficar import graficar_fuzzy
+from variables.graficar import graficar_fuzzy
 import skfuzzy as fuzz
 
 # Variable 5: Proximidad (km)
@@ -28,7 +28,7 @@ dens_media = fuzz.trimf(x_densidad, [5000, 15000, 20000])
 dens_alta = fuzz.trimf(x_densidad, [15000, 30000, 30000])
 
 # Graficar
-graficar_fuzzy(x_prox, [prox_lejana, prox_media, prox_cercana], ['Lejana', 'Media', 'Cercana'], 'Proximidad a población', 'Distancia (km)')
-graficar_fuzzy(x_planes, [plan_inexistente, plan_parcial, plan_completo], ['Inexistente', 'Parcial', 'Completo'], 'Planes de evacuación', 'Puntuación')
-graficar_fuzzy(x_preparacion, [prep_bajo, prep_medio, prep_alto], ['Bajo', 'Medio', 'Alto'], 'Nivel de preparación', 'Puntuación')
-graficar_fuzzy(x_densidad, [dens_baja, dens_media, dens_alta], ['Baja', 'Media', 'Alta'], 'Densidad poblacional', 'hab/km²')
+# graficar_fuzzy(x_prox, [prox_lejana, prox_media, prox_cercana], ['Lejana', 'Media', 'Cercana'], 'Proximidad a población', 'Distancia (km)')
+# graficar_fuzzy(x_planes, [plan_inexistente, plan_parcial, plan_completo], ['Inexistente', 'Parcial', 'Completo'], 'Planes de evacuación', 'Puntuación')
+# graficar_fuzzy(x_preparacion, [prep_bajo, prep_medio, prep_alto], ['Bajo', 'Medio', 'Alto'], 'Nivel de preparación', 'Puntuación')
+# graficar_fuzzy(x_densidad, [dens_baja, dens_media, dens_alta], ['Baja', 'Media', 'Alta'], 'Densidad poblacional', 'hab/km²')
