@@ -85,16 +85,16 @@ def evaluar_riesgo_volcanico(distrito):
 DISTRITOS = {
     "Alto Selva Alegre": {
         "nombre": "Alto Selva Alegre",
-        "historia":5,
-        "densidad": 14500,
-        "preparacion": 1.8,
+        "historia": 5,
+        "densidad": 86174,
+        "preparacion": 4.0,
         "proximidad": 8.5,
         "evacuacion": 4.2
     },
     "Miraflores": {
         "nombre": "Miraflores",
         "historia": 5,
-        "densidad": 22000,
+        "densidad": 50914,
         "preparacion": 4.0,
         "proximidad": 12.1,
         "evacuacion": 7.8
@@ -102,7 +102,7 @@ DISTRITOS = {
     "Mariano Melgar": {
         "nombre": "Mariano Melgar",
         "historia": 5,
-        "densidad": 17500,
+        "densidad": 55098,
         "preparacion": 2.0,
         "proximidad": 9.0,
         "evacuacion": 5.0
@@ -110,7 +110,7 @@ DISTRITOS = {
     "Paucarpata": {
         "nombre": "Paucarpata",
         "historia": 5,
-        "densidad": 16000,
+        "densidad": 130420,
         "preparacion": 3.2,
         "proximidad": 10.0,
         "evacuacion": 6.2
@@ -118,7 +118,7 @@ DISTRITOS = {
     "Cercado de Arequipa": {
         "nombre": "Cercado de Arequipa",
         "historia": 5,
-        "densidad": 25000,
+        "densidad": 56654,
         "preparacion": 2.8,
         "proximidad": 7.5,
         "evacuacion": 7.0
@@ -126,7 +126,7 @@ DISTRITOS = {
     "Cayma": {
         "nombre": "Cayma",
         "historia": 5,
-        "densidad": 9800,
+        "densidad": 96009,
         "preparacion": 3.1,
         "proximidad": 10.2,
         "evacuacion": 6.5
@@ -134,23 +134,23 @@ DISTRITOS = {
     "Sachaca": {
         "nombre": "Sachaca",
         "historia": 5,
-        "densidad": 5200,
+        "densidad": 20504,
         "preparacion": 2.4,
         "proximidad": 11.8,
         "evacuacion": 5.0
     },
     "Jacobo Hunter": {
         "nombre": "Jacobo Hunter",
-        "historia": 5,
-        "densidad": 7300,
-        "preparacion": 3.0,
-        "proximidad": 13.1,
+        "historia": 1,
+        "densidad": 19044,
+        "preparacion": 4.5,
+        "proximidad": 14.1,
         "evacuacion": 4.6
     },
     "Chiguata": {
         "nombre": "Chiguata",
         "historia": 5,
-        "densidad": 800,
+        "densidad": 3093,
         "preparacion": 1.2,
         "proximidad": 15.3,
         "evacuacion": 2.7
@@ -158,7 +158,7 @@ DISTRITOS = {
     "Characato": {
         "nombre": "Characato",
         "historia": 5,
-        "densidad": 3100,
+        "densidad": 9738,
         "preparacion": 2.1,
         "proximidad": 16.7,
         "evacuacion": 3.3
@@ -166,8 +166,8 @@ DISTRITOS = {
     "Socabaya": {
         "nombre": "Socabaya",
         "historia": 5,
-        "densidad": 4100,
-        "preparacion": 3.4,
+        "densidad": 1000,
+        "preparacion": 4.4,
         "proximidad": 14.5,
         "evacuacion": 5.6
     }
@@ -301,7 +301,7 @@ def graficar_burbujas(DISTRITOS):
 # Ejecutar gráfico de barras
 graficar_riesgo_distritos(resultados)
 graficar_heatmap_variables(DISTRITOS)
-graficar_burbujas(DISTRITOS)
+# graficar_burbujas(DISTRITOS)
 
 # Radar para los 2 distritos más riesgosos
 top2 = sorted(resultados.items(), key=lambda x: x[1], reverse=True)[:2]
