@@ -256,28 +256,86 @@ class TrueFuzzyBayesianNetwork:
     def _setup_fuzzy_systems(self):
         """Configurar sistemas difusos para mapeo de valores crisp a estados lingüísticos"""
         # Sistema para mapear sismicidad
+
+        # Sismicidad (eventos/día)
         self.fuzzy_systems['sismicidad'] = {
-            'ranges': {'baja': (0, 5), 'media': (3, 12), 'alta': (10, 20)},
-            'universe': np.arange(0, 21, 1)
+            'ranges': {
+                'baja': (0, 5),
+                'media': (3, 12),
+                'alta': (10, 20)
+            },
+            'unqiverse': np.arange(0, 21, 1)
         }
-        
-        # Sistema para mapear gases
+
+        # Emisión de gases (ppm SO₂)
         self.fuzzy_systems['gases'] = {
-            'ranges': {'normal': (0, 1500), 'elevada': (1000, 5000)},
+            'ranges': {
+                'normal': (0, 1500),
+                'elevada': (1000, 5000)
+            },
             'universe': np.arange(0, 5001, 100)
         }
-        
-        # Otros sistemas...
+
+        # Deformación del terreno (mm)
         self.fuzzy_systems['deformacion'] = {
-            'ranges': {'nula': (0, 5), 'leve': (3, 30), 'significativa': (25, 50)},
+            'ranges': {
+                'nula': (0, 5),
+                'leve': (3, 30),
+                'significativa': (25, 50)
+            },
             'universe': np.arange(0, 51, 1)
         }
-        
+
+        # Actividad histórica (nivel 0–10)
         self.fuzzy_systems['historia'] = {
-            'ranges': {'baja': (0, 2), 'media': (1, 7), 'alta': (6, 10)},
+            'ranges': {
+                'baja': (0, 2),
+                'media': (1, 7),
+                'alta': (6, 10)
+            },
             'universe': np.arange(0, 11, 1)
         }
-    
+
+        # Densidad poblacional (personas/km²)
+        self.fuzzy_systems['densidad'] = {
+            'ranges': {
+                'baja': (0, 5000),
+                'media': (4000, 15000),
+                'alta': (12000, 30000)
+            },
+            'universe': np.arange(0, 30001, 500)
+        }
+
+        # Nivel de preparación comunitaria (0–5)
+        self.fuzzy_systems['preparacion'] = {
+            'ranges': {
+                'baja': (0, 1.5),
+                'media': (1, 3.5),
+                'alta': (3, 5)
+            },
+            'universe': np.arange(0, 5.1, 0.1)
+        }
+
+        # Proximidad al cráter (km)
+        self.fuzzy_systems['proximidad'] = {
+            'ranges': {
+                'cercana': (0, 5),
+                'media': (4, 12),
+                'lejana': (10, 20)
+            },
+            'universe': np.arange(0, 21, 1)
+        }
+
+        # Calidad de planes de evacuación (nivel 0–10)
+        self.fuzzy_systems['evacuacion'] = {
+            'ranges': {
+                'deficiente': (0, 3),
+                'aceptable': (2, 7),
+                'buena': (6, 10)
+            },
+            'universe': np.arange(0, 11, 1)
+        }
+        
     def crisp_to_fuzzy_state(self, variable, crisp_value):
         """Convierte un valor crisp a estado lingüístico difuso"""
         if variable not in self.fuzzy_systems:
@@ -560,9 +618,9 @@ class TrueFuzzyBayesianNetwork:
 
 # Función principal de demostración
 def demo_true_fuzzy_bayesian_network():
-    """Demostración de la Red Bayesiana Difusa verdadera"""
+    """Demostración de la Red Bayesiana Difusa"""
     print("🌋" * 20)
-    print("SISTEMA DE RED BAYESIANA DIFUSA VERDADERA")
+    print("SISTEMA DE RED BAYESIANA DIFUSA")
     print("Evaluación de Riesgo Volcánico del Misti")
     print("🌋" * 20)
     
