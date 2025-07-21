@@ -81,95 +81,94 @@ def evaluar_riesgo_volcanico(distrito):
     
     return crisp_risk
 
-
 DISTRITOS = {
     "Alto Selva Alegre": {
         "nombre": "Alto Selva Alegre",
-        "historia": 5,
-        "densidad": 86174,
-        "preparacion": 4.0,
+        "historia": 9,
+        "densidad": 145000,   # muy alta
+        "preparacion": 1.8,   # baja
         "proximidad": 8.5,
-        "evacuacion": 4.2
+        "evacuacion": 3.5     # deficiente
     },
     "Miraflores": {
         "nombre": "Miraflores",
-        "historia": 5,
-        "densidad": 50914,
-        "preparacion": 4.0,
-        "proximidad": 12.1,
-        "evacuacion": 7.8
+        "historia": 8,
+        "densidad": 120000,
+        "preparacion": 2.2,
+        "proximidad": 7.5,
+        "evacuacion": 4.0
     },
     "Mariano Melgar": {
         "nombre": "Mariano Melgar",
-        "historia": 5,
-        "densidad": 55098,
-        "preparacion": 2.0,
+        "historia": 6,
+        "densidad": 80000,
+        "preparacion": 3.0,
         "proximidad": 9.0,
-        "evacuacion": 5.0
+        "evacuacion": 5.5
     },
     "Paucarpata": {
         "nombre": "Paucarpata",
-        "historia": 5,
-        "densidad": 130420,
-        "preparacion": 3.2,
-        "proximidad": 10.0,
-        "evacuacion": 6.2
+        "historia": 10,
+        "densidad": 160000,
+        "preparacion": 2.0,
+        "proximidad": 6.0,
+        "evacuacion": 4.5
     },
     "Cercado de Arequipa": {
         "nombre": "Cercado de Arequipa",
         "historia": 5,
-        "densidad": 56654,
-        "preparacion": 2.8,
+        "densidad": 65000,
+        "preparacion": 3.8,
         "proximidad": 7.5,
         "evacuacion": 7.0
     },
     "Cayma": {
         "nombre": "Cayma",
-        "historia": 5,
-        "densidad": 96009,
-        "preparacion": 3.1,
-        "proximidad": 10.2,
-        "evacuacion": 6.5
+        "historia": 4,
+        "densidad": 58000,
+        "preparacion": 4.2,
+        "proximidad": 11.0,
+        "evacuacion": 7.0
     },
     "Sachaca": {
         "nombre": "Sachaca",
-        "historia": 5,
-        "densidad": 20504,
-        "preparacion": 2.4,
-        "proximidad": 11.8,
-        "evacuacion": 5.0
+        "historia": 3,
+        "densidad": 15000,
+        "preparacion": 4.5,
+        "proximidad": 13.0,
+        "evacuacion": 6.0
     },
     "Jacobo Hunter": {
         "nombre": "Jacobo Hunter",
-        "historia": 1,
-        "densidad": 19044,
-        "preparacion": 4.5,
+        "historia": 2,
+        "densidad": 12000,
+        "preparacion": 4.8,
         "proximidad": 14.1,
-        "evacuacion": 4.6
+        "evacuacion": 6.5
     },
     "Chiguata": {
         "nombre": "Chiguata",
-        "historia": 5,
-        "densidad": 3093,
-        "preparacion": 1.2,
-        "proximidad": 15.3,
-        "evacuacion": 2.7
+        "historia": 10,
+        "densidad": 500,
+        "preparacion": 1.0,
+        "proximidad": 5.0,      # muy cerca
+        "evacuacion": 2.0       # muy pobre
     },
     "Characato": {
         "nombre": "Characato",
-        "historia": 5,
-        "densidad": 9738,
-        "preparacion": 2.1,
-        "proximidad": 16.7,
-        "evacuacion": 3.3
+        "historia": 6,
+        "densidad": 15000,
+        "preparacion": 3.0,
+        "proximidad": 14.0,
+        "evacuacion": 6.0
     },
     "Socabaya": {
         "nombre": "Socabaya",
-        "historia": 5,
+        "historia": 1,
         "densidad": 1000,
-        "preparacion": 4.4,
-        "proximidad": 14.5,
-        "evacuacion": 5.6
+        "preparacion": 5.0,     # muy buena preparación
+        "proximidad": 15.0,
+        "evacuacion": 8.0
     }
 }
 
