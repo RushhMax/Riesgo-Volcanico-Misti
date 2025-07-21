@@ -31,8 +31,8 @@ valor_vulnerabilidad = calcular_vulnerabilidad(
 
 # Paso 3: Evaluar el riesgo a partir de amenaza y vulnerabilidad
 valor_riesgo = calcular_riesgo(
-    amenaza=valor_amenaza,
-    vulnerabilidad=valor_vulnerabilidad
+    valor_amenaza=valor_amenaza,
+    valor_vulnerabilidad=valor_vulnerabilidad
 )
 
 # Mostrar resultados
