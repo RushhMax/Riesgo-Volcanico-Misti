@@ -2,8 +2,9 @@ from pgmpy.models import DiscreteBayesianNetwork
 from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 
+
 def crear_red_bayesiana():
-    # 1. Definir estructura
+    # 1. Estructura
     modelo = DiscreteBayesianNetwork([
         ('sismicidad', 'amenaza'),
         ('gases', 'amenaza'),
@@ -13,7 +14,7 @@ def crear_red_bayesiana():
         ('preparacion', 'vulnerabilidad')
     ])
 
-    # 2. CPDs para nodos fuente
+    # 2. CPDs de nodos fuente
     cpd_sismicidad = TabularCPD(variable='sismicidad', variable_card=3, values=[[0.4], [0.4], [0.2]])
     cpd_gases = TabularCPD(variable='gases', variable_card=3, values=[[0.3], [0.5], [0.2]])
     cpd_deformacion = TabularCPD(variable='deformacion', variable_card=3, values=[[0.5], [0.3], [0.2]])
@@ -21,45 +22,47 @@ def crear_red_bayesiana():
     cpd_densidad = TabularCPD(variable='densidad', variable_card=3, values=[[0.3], [0.5], [0.2]])
     cpd_preparacion = TabularCPD(variable='preparacion', variable_card=3, values=[[0.2], [0.5], [0.3]])
 
-    # 3. CPD de amenaza (simplificada)
+    # 3. CPD de amenaza
     cpd_amenaza = TabularCPD(
         variable='amenaza', variable_card=3,
         evidence=['sismicidad', 'gases', 'deformacion', 'historia'],
         evidence_card=[3, 3, 3, 2],
         values=[
-            [0.7]*54,  # baja
-            [0.2]*54,  # media
-            [0.1]*54   # alta
+            [0.7] * 54,  # baja
+            [0.2] * 54,  # media
+            [0.1] * 54   # alta
         ]
     )
 
-    # 4. CPD de vulnerabilidad (también simplificada)
+    # 4. CPD de vulnerabilidad
     cpd_vulnerabilidad = TabularCPD(
         variable='vulnerabilidad', variable_card=3,
         evidence=['densidad', 'preparacion'],
         evidence_card=[3, 3],
         values=[
-            [0.6]*9,  # baja
-            [0.3]*9,  # media
-            [0.1]*9   # alta
+            [0.6] * 9,  # baja
+            [0.3] * 9,  # media
+            [0.1] * 9   # alta
         ]
     )
 
-    # 5. Agregar CPDs al modelo
+    # 5. Agregar CPDs
     modelo.add_cpds(
         cpd_sismicidad, cpd_gases, cpd_deformacion, cpd_historia,
         cpd_densidad, cpd_preparacion,
         cpd_amenaza, cpd_vulnerabilidad
     )
 
+    # Verificación
     modelo.check_model()
     return modelo
 
+
 def probabilidad_a_valor_difuso(distribucion, etiquetas=['baja', 'media', 'alta'], dominio=[0, 5, 10]):
     """
-    Convierte una distribución discreta bayesiana a un valor difuso (esperado).
-    Por ejemplo: {'baja': 0.2, 'media': 0.5, 'alta': 0.3} → valor difuso ≈ 5.5
+    Convierte una distribución bayesiana (numpy array) a un valor difuso esperado.
     """
     mapeo = dict(zip(etiquetas, dominio))  # {'baja': 0, 'media': 5, 'alta': 10}
-    valor_esperado = sum(mapeo[estado] * prob for estado, prob in distribucion.items())
+    valor_esperado = sum(mapeo[etiquetas[i]] * distribucion[i] for i in range(len(distribucion)))
     return valor_esperado
+
