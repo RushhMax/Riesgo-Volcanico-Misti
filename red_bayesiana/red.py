@@ -116,228 +116,350 @@ class TrueFuzzyBayesianNetwork:
         self._setup_amenaza_fuzzy_cpd()
         self._setup_vulnerabilidad_fuzzy_cpd()
         self._setup_riesgo_fuzzy_cpd()
-    
+        
     def _setup_amenaza_fuzzy_cpd(self):
-        """Configurar CPD difusa para amenaza"""
-        # Reglas difusas basadas en conocimiento experto
+        """Configurar CPD difusa para amenaza con probabilidades mejoradas"""
         fuzzy_rules = {
-            # (sismicidad, gases, deformacion, historia): {baja, media, alta}
+            # Combinaciones extremas
             ('alta', 'elevada', 'significativa', 'alta'): {
-                'baja': TriangularFuzzyProbability(0.0, 0.05, 0.1),
-                'media': TriangularFuzzyProbability(0.1, 0.2, 0.3),
-                'alta': TriangularFuzzyProbability(0.6, 0.75, 0.9)
+                'baja': TriangularFuzzyProbability(0.0, 0.02, 0.05),
+                'media': TriangularFuzzyProbability(0.05, 0.1, 0.15),
+                'alta': TriangularFuzzyProbability(0.8, 0.88, 0.95)
             },
             ('baja', 'normal', 'nula', 'baja'): {
-                'baja': TriangularFuzzyProbability(0.6, 0.8, 0.9),
-                'media': TriangularFuzzyProbability(0.1, 0.15, 0.2),
-                'alta': TriangularFuzzyProbability(0.0, 0.05, 0.1)
+                'baja': TriangularFuzzyProbability(0.85, 0.9, 0.95),
+                'media': TriangularFuzzyProbability(0.05, 0.08, 0.1),
+                'alta': TriangularFuzzyProbability(0.0, 0.02, 0.05)
+            },
+            
+            # Combinaciones con alta sismicidad
+            ('alta', 'elevada', 'leve', 'media'): {
+                'baja': TriangularFuzzyProbability(0.1, 0.15, 0.2),
+                'media': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alta': TriangularFuzzyProbability(0.3, 0.35, 0.4)
+            },
+            ('alta', 'normal', 'significativa', 'alta'): {
+                'baja': TriangularFuzzyProbability(0.05, 0.1, 0.15),
+                'media': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                'alta': TriangularFuzzyProbability(0.4, 0.5, 0.6)
+            },
+            
+            # Combinaciones con media sismicidad
+            ('media', 'elevada', 'significativa', 'alta'): {
+                'baja': TriangularFuzzyProbability(0.05, 0.1, 0.15),
+                'media': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alta': TriangularFuzzyProbability(0.3, 0.4, 0.5)
             },
             ('media', 'normal', 'leve', 'media'): {
+                'baja': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                'media': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'alta': TriangularFuzzyProbability(0.1, 0.15, 0.2)
+            },
+            ('media', 'elevada', 'nula', 'baja'): {
+                'baja': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'media': TriangularFuzzyProbability(0.3, 0.35, 0.4),
+                'alta': TriangularFuzzyProbability(0.05, 0.1, 0.15)
+            },
+            
+            # Combinaciones con baja sismicidad pero otros factores altos
+            ('baja', 'elevada', 'significativa', 'alta'): {
                 'baja': TriangularFuzzyProbability(0.2, 0.3, 0.4),
                 'media': TriangularFuzzyProbability(0.4, 0.5, 0.6),
-                'alta': TriangularFuzzyProbability(0.1, 0.2, 0.3)
-            },
-            # Reglas adicionales para cubrir más combinaciones
-            ('alta', 'elevada', 'leve', 'media'): {
-                'baja': TriangularFuzzyProbability(0.1, 0.2, 0.3),
-                'media': TriangularFuzzyProbability(0.3, 0.5, 0.6),
                 'alta': TriangularFuzzyProbability(0.2, 0.3, 0.4)
             },
-            ('media', 'normal', 'nula', 'baja'): {
-                'baja': TriangularFuzzyProbability(0.5, 0.7, 0.8),
-                'media': TriangularFuzzyProbability(0.1, 0.2, 0.3),
-                'alta': TriangularFuzzyProbability(0.0, 0.1, 0.2)
+            ('baja', 'normal', 'significativa', 'alta'): {
+                'baja': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'media': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                'alta': TriangularFuzzyProbability(0.1, 0.15, 0.2)
+            },
+            
+            # Casos intermedios adicionales
+            ('alta', 'normal', 'leve', 'media'): {
+                'baja': TriangularFuzzyProbability(0.2, 0.25, 0.3),
+                'media': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'alta': TriangularFuzzyProbability(0.15, 0.2, 0.25)
+            },
+            ('media', 'elevada', 'leve', 'media'): {
+                'baja': TriangularFuzzyProbability(0.15, 0.2, 0.25),
+                'media': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'alta': TriangularFuzzyProbability(0.2, 0.25, 0.3)
+            },
+            
+            # Caso especial: baja sismicidad pero gases elevados y deformación
+            ('baja', 'elevada', 'leve', 'media'): {
+                'baja': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'media': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                'alta': TriangularFuzzyProbability(0.1, 0.15, 0.2)
             }
         }
         self.nodes['amenaza'].set_fuzzy_cpd(fuzzy_rules)
     
     def _setup_vulnerabilidad_fuzzy_cpd(self):
-        """Configurar CPD difusa para vulnerabilidad"""
+        """Configurar CPD difusa para vulnerabilidad con probabilidades mejoradas"""
         fuzzy_rules = {
-            # (densidad, preparacion, proximidad, evacuacion): {baja, media, alta}
+            # Escenario peor caso: alta densidad, nula preparación, cercanía y sin evacuación
             ('alta', 'muy bajo', 'cercana', 'inexistente'): {
-                'baja': TriangularFuzzyProbability(0.0, 0.05, 0.1),
-                'media': TriangularFuzzyProbability(0.1, 0.2, 0.3),
-                'alta': TriangularFuzzyProbability(0.6, 0.75, 0.9)
+                'baja': TriangularFuzzyProbability(0.0, 0.02, 0.05),
+                'media': TriangularFuzzyProbability(0.05, 0.1, 0.15),
+                'alta': TriangularFuzzyProbability(0.8, 0.88, 0.95)
             },
-            ('baja', 'alto', 'lejana', 'completo'): {
-                'baja': TriangularFuzzyProbability(0.6, 0.8, 0.9),
-                'media': TriangularFuzzyProbability(0.1, 0.15, 0.2),
-                'alta': TriangularFuzzyProbability(0.0, 0.05, 0.1)
+            
+            # Escenario mejor caso: baja densidad, máxima preparación, lejanía y evacuación completa
+            ('baja', 'muy alto', 'lejana', 'completo'): {
+                'baja': TriangularFuzzyProbability(0.85, 0.9, 0.95),
+                'media': TriangularFuzzyProbability(0.05, 0.08, 0.12),
+                'alta': TriangularFuzzyProbability(0.0, 0.02, 0.05)
             },
-            ('media', 'bajo', 'media', 'parcial'): {
-                'baja': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+            
+            # Alta densidad pero buena preparación y evacuación
+            ('alta', 'alto', 'cercana', 'completo'): {
+                'baja': TriangularFuzzyProbability(0.3, 0.4, 0.5),
                 'media': TriangularFuzzyProbability(0.4, 0.5, 0.6),
-                'alta': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+                'alta': TriangularFuzzyProbability(0.1, 0.15, 0.2)
             },
+            
+            # Densidad media con preparación media y evacuación parcial
+            ('media', 'medio', 'media', 'parcial'): {
+                'baja': TriangularFuzzyProbability(0.25, 0.35, 0.45),
+                'media': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alta': TriangularFuzzyProbability(0.15, 0.2, 0.25)
+            },
+            
+            # Alta densidad con preparación media
             ('alta', 'medio', 'media', 'parcial'): {
-                'baja': TriangularFuzzyProbability(0.1, 0.2, 0.3),
-                'media': TriangularFuzzyProbability(0.3, 0.5, 0.6),
-                'alta': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+                'baja': TriangularFuzzyProbability(0.1, 0.15, 0.2),
+                'media': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alta': TriangularFuzzyProbability(0.3, 0.35, 0.4)
             },
-            ('media', 'muy bajo', 'cercana', 'inexistente'): {
-                'baja': TriangularFuzzyProbability(0.0, 0.1, 0.2),
-                'media': TriangularFuzzyProbability(0.2, 0.3, 0.4),
-                'alta': TriangularFuzzyProbability(0.4, 0.6, 0.8)
+            
+            # Baja densidad pero mala preparación
+            ('baja', 'bajo', 'lejana', 'inexistente'): {
+                'baja': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'media': TriangularFuzzyProbability(0.3, 0.35, 0.4),
+                'alta': TriangularFuzzyProbability(0.05, 0.1, 0.15)
+            },
+            
+            # Densidad media con preparación baja
+            ('media', 'bajo', 'cercana', 'parcial'): {
+                'baja': TriangularFuzzyProbability(0.15, 0.2, 0.25),
+                'media': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'alta': TriangularFuzzyProbability(0.2, 0.25, 0.3)
+            },
+            
+            # Todos los factores en nivel medio
+            ('media', 'medio', 'media', 'parcial'): {
+                'baja': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'media': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'alta': TriangularFuzzyProbability(0.1, 0.15, 0.2)
+            },
+            
+            # Alta densidad pero lejanía compensatoria
+            ('alta', 'medio', 'lejana', 'parcial'): {
+                'baja': TriangularFuzzyProbability(0.3, 0.4, 0.5),
+                'media': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'alta': TriangularFuzzyProbability(0.1, 0.15, 0.2)
             }
         }
         self.nodes['vulnerabilidad'].set_fuzzy_cpd(fuzzy_rules)
-    
+
     def _setup_riesgo_fuzzy_cpd(self):
-        """Configurar CPD difusa para riesgo"""
+        """Configurar CPD difusa para riesgo con mayor granularidad"""
         fuzzy_rules = {
-            # (amenaza, vulnerabilidad): {bajo, medio, alto}
+            # Escenarios base
             ('baja', 'baja'): {
-                'bajo': TriangularFuzzyProbability(0.7, 0.8, 0.9),
-                'medio': TriangularFuzzyProbability(0.1, 0.15, 0.2),
-                'alto': TriangularFuzzyProbability(0.0, 0.05, 0.1)
+                'bajo': TriangularFuzzyProbability(0.75, 0.85, 0.92),
+                'medio': TriangularFuzzyProbability(0.05, 0.1, 0.15),
+                'alto': TriangularFuzzyProbability(0.0, 0.03, 0.06)
             },
             ('baja', 'media'): {
-                'bajo': TriangularFuzzyProbability(0.3, 0.4, 0.5),
-                'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
-                'alto': TriangularFuzzyProbability(0.0, 0.1, 0.2)
+                'bajo': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'medio': TriangularFuzzyProbability(0.25, 0.35, 0.45),
+                'alto': TriangularFuzzyProbability(0.05, 0.1, 0.15)
             },
             ('baja', 'alta'): {
-                'bajo': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'bajo': TriangularFuzzyProbability(0.25, 0.35, 0.45),
                 'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
-                'alto': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+                'alto': TriangularFuzzyProbability(0.15, 0.2, 0.25)
             },
             ('media', 'baja'): {
-                'bajo': TriangularFuzzyProbability(0.3, 0.4, 0.5),
-                'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
-                'alto': TriangularFuzzyProbability(0.0, 0.1, 0.2)
+                'bajo': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+                'medio': TriangularFuzzyProbability(0.35, 0.45, 0.55),
+                'alto': TriangularFuzzyProbability(0.05, 0.1, 0.15)
             },
             ('media', 'media'): {
-                'bajo': TriangularFuzzyProbability(0.2, 0.3, 0.4),
-                'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
-                'alto': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+                'bajo': TriangularFuzzyProbability(0.15, 0.25, 0.35),
+                'medio': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'alto': TriangularFuzzyProbability(0.15, 0.25, 0.35)
             },
             ('media', 'alta'): {
-                'bajo': TriangularFuzzyProbability(0.1, 0.15, 0.2),
-                'medio': TriangularFuzzyProbability(0.2, 0.3, 0.4),
-                'alto': TriangularFuzzyProbability(0.4, 0.55, 0.7)
+                'bajo': TriangularFuzzyProbability(0.05, 0.1, 0.15),
+                'medio': TriangularFuzzyProbability(0.35, 0.45, 0.55),
+                'alto': TriangularFuzzyProbability(0.4, 0.5, 0.6)
             },
             ('alta', 'baja'): {
-                'bajo': TriangularFuzzyProbability(0.2, 0.3, 0.4),
-                'medio': TriangularFuzzyProbability(0.4, 0.5, 0.6),
-                'alto': TriangularFuzzyProbability(0.1, 0.2, 0.3)
+                'bajo': TriangularFuzzyProbability(0.15, 0.25, 0.35),
+                'medio': TriangularFuzzyProbability(0.45, 0.55, 0.65),
+                'alto': TriangularFuzzyProbability(0.15, 0.25, 0.35)
             },
             ('alta', 'media'): {
-                'bajo': TriangularFuzzyProbability(0.1, 0.15, 0.2),
-                'medio': TriangularFuzzyProbability(0.2, 0.3, 0.4),
-                'alto': TriangularFuzzyProbability(0.4, 0.55, 0.7)
+                'bajo': TriangularFuzzyProbability(0.05, 0.1, 0.15),
+                'medio': TriangularFuzzyProbability(0.25, 0.35, 0.45),
+                'alto': TriangularFuzzyProbability(0.5, 0.6, 0.7)
             },
             ('alta', 'alta'): {
+                'bajo': TriangularFuzzyProbability(0.0, 0.02, 0.05),
+                'medio': TriangularFuzzyProbability(0.1, 0.15, 0.2),
+                'alto': TriangularFuzzyProbability(0.75, 0.85, 0.95)
+            },
+            
+            # Casos especiales
+            ('media-alta', 'baja'): {  # Transición entre media y alta amenaza
+                'bajo': TriangularFuzzyProbability(0.1, 0.2, 0.3),
+                'medio': TriangularFuzzyProbability(0.5, 0.6, 0.7),
+                'alto': TriangularFuzzyProbability(0.2, 0.3, 0.4)
+            },
+            ('alta', 'media-alta'): {  # Vulnerabilidad en transición
                 'bajo': TriangularFuzzyProbability(0.0, 0.05, 0.1),
-                'medio': TriangularFuzzyProbability(0.1, 0.2, 0.3),
-                'alto': TriangularFuzzyProbability(0.6, 0.75, 0.9)
+                'medio': TriangularFuzzyProbability(0.2, 0.3, 0.4),
+                'alto': TriangularFuzzyProbability(0.6, 0.7, 0.8)
+            },
+            ('baja-media', 'alta'): {  # Amenaza en transición
+                'bajo': TriangularFuzzyProbability(0.15, 0.25, 0.35),
+                'medio': TriangularFuzzyProbability(0.45, 0.55, 0.65),
+                'alto': TriangularFuzzyProbability(0.2, 0.3, 0.4)
             }
         }
         self.nodes['riesgo'].set_fuzzy_cpd(fuzzy_rules)
-    
-    def _setup_fuzzy_systems(self):
-        """Configurar sistemas difusos para mapeo de valores crisp a estados lingüísticos"""
-        # Sistema para mapear sismicidad
 
-        # Sismicidad (eventos/día)
+    def _setup_fuzzy_systems(self):
+        """Configuración optimizada de sistemas difusos con correspondencia exacta a los estados de los nodos"""
+        
+        # Sismicidad (eventos/día) - 3 estados
         self.fuzzy_systems['sismicidad'] = {
             'ranges': {
-                'baja': (0, 5),
-                'media': (3, 12),
-                'alta': (10, 20)
+                'baja': (0, 4),       # 0-4 eventos/día
+                'media': (3, 10),     # 3-10 eventos/día
+                'alta': (8, 20)       # 8+ eventos/día
             },
-            'unqiverse': np.arange(0, 21, 1)
+            'universe': np.arange(0, 21, 1)  # Rango 0-20
         }
 
-        # Emisión de gases (ppm SO₂)
+        # Emisión de gases (ppm SO₂) - 2 estados
         self.fuzzy_systems['gases'] = {
             'ranges': {
-                'normal': (0, 1500),
-                'elevada': (1000, 5000)
+                'normal': (0, 1200),   # 0-1200 ppm
+                'elevada': (800, 5000) # 800+ ppm
             },
-            'universe': np.arange(0, 5001, 100)
+            'universe': np.arange(0, 5001, 100)  # Rango 0-5000
         }
 
-        # Deformación del terreno (mm)
+        # Deformación del terreno (mm) - 3 estados
         self.fuzzy_systems['deformacion'] = {
             'ranges': {
-                'nula': (0, 5),
-                'leve': (3, 30),
-                'significativa': (25, 50)
+                'nula': (0, 4),        # 0-4 mm
+                'leve': (3, 20),       # 3-20 mm
+                'significativa': (15, 50) # 15+ mm
             },
-            'universe': np.arange(0, 51, 1)
+            'universe': np.arange(0, 51, 1)  # Rango 0-50
         }
 
-        # Actividad histórica (nivel 0–10)
+        # Actividad histórica (0-10) - 3 estados
         self.fuzzy_systems['historia'] = {
             'ranges': {
-                'baja': (0, 2),
-                'media': (1, 7),
-                'alta': (6, 10)
+                'baja': (0, 3),        # 0-3
+                'media': (2, 8),       # 2-8
+                'alta': (6, 10)        # 6-10
             },
-            'universe': np.arange(0, 11, 1)
+            'universe': np.arange(0, 11, 1)  # Rango 0-10
         }
 
-        # Densidad poblacional (personas/km²)
+        # Densidad poblacional (personas/km²) - 3 estados
         self.fuzzy_systems['densidad'] = {
             'ranges': {
-                'baja': (0, 5000),
-                'media': (4000, 15000),
-                'alta': (12000, 30000)
+                'baja': (0, 6000),     # 0-6000
+                'media': (4000, 12000), # 4000-12000
+                'alta': (8000, 30000)   # 8000+
             },
-            'universe': np.arange(0, 30001, 500)
+            'universe': np.arange(0, 30001, 500)  # Rango 0-30000
         }
 
-        # Nivel de preparación comunitaria (0–5)
+        # Preparación comunitaria (0-5) - 5 estados
         self.fuzzy_systems['preparacion'] = {
             'ranges': {
-                'baja': (0, 1.5),
-                'media': (1, 3.5),
-                'alta': (3, 5)
+                'muy bajo': (0, 1),    # 0-1
+                'bajo': (0.5, 2),      # 0.5-2
+                'medio': (1.5, 3.5),   # 1.5-3.5
+                'alto': (3, 4.5),      # 3-4.5
+                'muy alto': (4, 5)     # 4-5
             },
-            'universe': np.arange(0, 5.1, 0.1)
+            'universe': np.arange(0, 5.1, 0.1)  # Rango 0-5
         }
 
-        # Proximidad al cráter (km)
+        # Proximidad al cráter (km) - 3 estados
         self.fuzzy_systems['proximidad'] = {
             'ranges': {
-                'cercana': (0, 5),
-                'media': (4, 12),
-                'lejana': (10, 20)
+                'cercana': (0, 6),     # 0-6 km
+                'media': (4, 14),      # 4-14 km
+                'lejana': (10, 20)     # 10-20 km
             },
-            'universe': np.arange(0, 21, 1)
+            'universe': np.arange(0, 21, 1)  # Rango 0-20
         }
 
-        # Calidad de planes de evacuación (nivel 0–10)
+        # Planes de evacuación (0-10) - 3 estados
         self.fuzzy_systems['evacuacion'] = {
             'ranges': {
-                'deficiente': (0, 3),
-                'aceptable': (2, 7),
-                'buena': (6, 10)
+                'inexistente': (0, 3), # 0-3
+                'parcial': (2, 7),      # 2-7
+                'completo': (5, 10)     # 5-10
             },
-            'universe': np.arange(0, 11, 1)
+            'universe': np.arange(0, 11, 1)  # Rango 0-10
         }
         
-    def crisp_to_fuzzy_state(self, variable, crisp_value):
-        """Convierte un valor crisp a estado lingüístico difuso"""
+    def crisp_to_fuzzy_state(self, variable, crisp_value, verbose=False):
+        """Convierte un valor crisp a estado lingüístico difuso con mejor manejo de bordes"""
         if variable not in self.fuzzy_systems:
             return 'medio'  # Estado por defecto
         
         ranges = self.fuzzy_systems[variable]['ranges']
-        max_membership = 0
+        max_membership = -1  # Inicializar con valor negativo
         best_state = list(ranges.keys())[0]
         
         for state, (low, high) in ranges.items():
-            # Calcular membresía triangular simple
+            if verbose:
+                print("Evaluando estado '%s' con rango (%s, %s) para valor crisp %.2f" % (state, low, high, crisp_value))
+            membership = 0.0
+            
+            # Si el valor está dentro del rango
             if low <= crisp_value <= high:
-                if crisp_value <= (low + high) / 2:
-                    membership = (crisp_value - low) / ((low + high) / 2 - low) if (low + high) / 2 != low else 1
-                else:
-                    membership = (high - crisp_value) / (high - (low + high) / 2) if high != (low + high) / 2 else 1
+                midpoint = (low + high) / 2
                 
-                if membership > max_membership:
-                    max_membership = membership
-                    best_state = state
+                # Calcular membresía triangular
+                if crisp_value <= midpoint:
+                    if midpoint != low:  # Evitar división por cero
+                        membership = (crisp_value - low) / (midpoint - low)
+                    else:
+                        membership = 1.0
+                else:
+                    if high != midpoint:  # Evitar división por cero
+                        membership = (high - crisp_value) / (high - midpoint)
+                    else:
+                        membership = 1.0
+                        
+                # Asegurar que la membresía esté en [0, 1]
+                membership = max(0.0, min(1.0, membership))
+                
+                # Manejo especial para valores en los extremos
+                if crisp_value == high and high == self.fuzzy_systems[variable]['universe'][-1]:
+                    membership = 1.0  # Máxima membresía si es el valor máximo posible
+                elif crisp_value == low and low == self.fuzzy_systems[variable]['universe'][0]:
+                    membership = 1.0  # Máxima membresía si es el valor mínimo posible
+            
+            if verbose:
+                print(f"   Membresía para '{state}': {membership:.3f}")
+            # Actualizar el mejor estado si encontramos mayor membresía
+            if membership > max_membership:
+                max_membership = membership
+                best_state = state
         
         return best_state
     
@@ -353,6 +475,18 @@ class TrueFuzzyBayesianNetwork:
         Returns:
             Distribución difusa para la variable objetivo
         """
+        # Validación de entrada
+        if not evidence_crisp or not isinstance(evidence_crisp, dict):
+            raise ValueError("evidence_crisp debe ser un diccionario no vacío")
+        
+        if target_variable not in self.nodes:
+            raise ValueError(f"Variable objetivo '{target_variable}' no existe en la red")
+        
+        # Validar que los valores sean numéricos
+        for var, value in evidence_crisp.items():
+            if not isinstance(value, (int, float)):
+                raise TypeError(f"El valor para '{var}' debe ser numérico, recibido: {type(value)}")
+                
         if verbose:
             print("🌋 INICIANDO INFERENCIA DIFUSA BAYESIANA")
             print("=" * 50)
@@ -361,7 +495,7 @@ class TrueFuzzyBayesianNetwork:
         evidence_linguistic = {}
         for var, value in evidence_crisp.items():
             if var in self.fuzzy_systems:
-                state = self.crisp_to_fuzzy_state(var, value)
+                state = self.crisp_to_fuzzy_state(var, value, verbose)
                 evidence_linguistic[var] = state
                 if verbose:
                     print(f"📊 {var}: {value} → '{state}'")
@@ -396,6 +530,9 @@ class TrueFuzzyBayesianNetwork:
         if all(parent in inferred for parent in amenaza_parents):
             parent_states = tuple(inferred[parent] for parent in amenaza_parents)
             
+            if verbose:
+                print(f"🔍 Evaluando amenaza con padres: {parent_states}")
+                
             if parent_states in self.nodes['amenaza'].fuzzy_cpd:
                 inferred_amenaza = self.nodes['amenaza'].fuzzy_cpd[parent_states]
                 if verbose:
@@ -426,6 +563,9 @@ class TrueFuzzyBayesianNetwork:
         if all(parent in inferred for parent in vuln_parents):
             parent_states = tuple(inferred[parent] for parent in vuln_parents)
             
+            if verbose:
+                print(f"🔍 Evaluando vulnerabilidad con padres: {parent_states}")
+                
             if parent_states in self.nodes['vulnerabilidad'].fuzzy_cpd:
                 inferred_vuln = self.nodes['vulnerabilidad'].fuzzy_cpd[parent_states]
                 if verbose:
@@ -454,6 +594,9 @@ class TrueFuzzyBayesianNetwork:
         if 'amenaza' in inferred and 'vulnerabilidad' in inferred:
             parent_states = (inferred['amenaza'], inferred['vulnerabilidad'])
             
+            if verbose:
+                print(f"🔍 Evaluando riesgo con padres: {parent_states}")
+                
             if parent_states in self.nodes['riesgo'].fuzzy_cpd:
                 riesgo_distribution = self.nodes['riesgo'].fuzzy_cpd[parent_states]
                 if verbose:
@@ -470,11 +613,11 @@ class TrueFuzzyBayesianNetwork:
                 
                 return {'riesgo': riesgo_distribution}
         
-        # Si no podemos inferir riesgo, usar distribución por defecto
+        # Si no podemos inferir riesgo, usar distribución por defecto normalizada
         return {'riesgo': {
-            'bajo': TriangularFuzzyProbability(0.3, 0.4, 0.5),
-            'medio': TriangularFuzzyProbability(0.3, 0.4, 0.5),
-            'alto': TriangularFuzzyProbability(0.2, 0.2, 0.4)
+            'bajo': TriangularFuzzyProbability(0.4, 0.5, 0.6),
+            'medio': TriangularFuzzyProbability(0.25, 0.35, 0.45),
+            'alto': TriangularFuzzyProbability(0.15, 0.25, 0.35)
         }}
     
     def _interpolate_fuzzy_cpd(self, node_name, parent_states):
@@ -542,6 +685,30 @@ class TrueFuzzyBayesianNetwork:
         
         return result
     
+    def _normalize_fuzzy_distribution(self, fuzzy_distribution):
+        """Normalizar una distribución difusa para que sume aproximadamente 1.0"""
+        if not fuzzy_distribution:
+            return fuzzy_distribution
+            
+        # Calcular la suma total de los centroides
+        total_centroid = sum(fuzzy_num.defuzzify_centroid() 
+                           for fuzzy_num in fuzzy_distribution.values())
+        
+        if total_centroid == 0:
+            return fuzzy_distribution
+            
+        # Normalizar cada número difuso
+        normalized = {}
+        for state, fuzzy_num in fuzzy_distribution.items():
+            factor = fuzzy_num.defuzzify_centroid() / total_centroid
+            normalized[state] = TriangularFuzzyProbability(
+                fuzzy_num.a * factor,
+                fuzzy_num.m * factor, 
+                fuzzy_num.b * factor
+            )
+        
+        return normalized
+    
     def defuzzify_distribution(self, fuzzy_distribution, method='centroid'):
         """
         Defuzzificar una distribución difusa a un valor crisp
@@ -597,3 +764,50 @@ class TrueFuzzyBayesianNetwork:
             'elevada': 8
         }
         return mapping.get(state, 5)  # Valor por defecto
+    
+    def diagnose_network(self):
+        """Método para diagnosticar problemas en la red bayesiana"""
+        issues = []
+        
+        # Verificar nodos
+        for node_name, node in self.nodes.items():
+            if not node.states:
+                issues.append(f"Nodo '{node_name}' no tiene estados definidos")
+            
+            # Verificar CPDs para nodos con padres
+            if node.parents and not node.fuzzy_cpd:
+                issues.append(f"Nodo '{node_name}' tiene padres pero no CPD definida")
+            
+            # Verificar distribución a priori para nodos sin padres
+            if not node.parents and not node.fuzzy_prior:
+                issues.append(f"Nodo raíz '{node_name}' no tiene distribución a priori")
+        
+        # Verificar sistemas difusos
+        for var_name in self.nodes.keys():
+            if var_name not in self.fuzzy_systems:
+                issues.append(f"Variable '{var_name}' no tiene sistema difuso definido")
+        
+        return issues
+    
+    def get_network_info(self):
+        """Obtener información resumida de la red"""
+        info = {
+            'total_nodes': len(self.nodes),
+            'root_nodes': [],
+            'intermediate_nodes': [],
+            'leaf_nodes': [],
+            'total_cpd_rules': 0
+        }
+        
+        for node_name, node in self.nodes.items():
+            if not node.parents:
+                info['root_nodes'].append(node_name)
+            elif node_name in ['amenaza', 'vulnerabilidad']:
+                info['intermediate_nodes'].append(node_name)
+            else:
+                info['leaf_nodes'].append(node_name)
+                
+            if node.fuzzy_cpd:
+                info['total_cpd_rules'] += len(node.fuzzy_cpd)
+        
+        return info
