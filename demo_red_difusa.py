@@ -13,7 +13,7 @@ implementado para la evaluación de riesgo volcánico, incluyendo:
 import numpy as np
 import matplotlib.pyplot as plt
 from main import TrueFuzzyBayesianNetwork
-from triangular import TriangularFuzzyProbability
+from red_bayesiana.triangular import TriangularFuzzyProbability
 
 def demo_escenarios_volcanicos():
     """Demostración con múltiples escenarios volcánicos"""

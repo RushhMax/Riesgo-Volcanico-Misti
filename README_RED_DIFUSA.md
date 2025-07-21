@@ -69,18 +69,13 @@ python demo_red_difusa.py
 ```
 Riesgo-Volcanico-Misti/
 ├── main.py                          # Implementación principal de Red Bayesiana Difusa
-├── triangular.py                     # Clase para números difusos triangulares
+├── triangular.py                    # Clase para números difusos triangulares
 ├── demo_red_difusa.py               # Demostración completa del sistema
-├── requirements.txt                  # Dependencias del proyecto
+├── requirements.txt                 # Dependencias del proyecto
 ├── .gitignore                       # Configuración de Git
 ├── README_RED_DIFUSA.md             # Documentación de la Red Bayesiana Difusa
 ├── CONVERSION_COMPLETADA.md         # Resumen de la conversión realizada
-├── ANALISIS_TECNICO.md              # Análisis técnico detallado
-└── modelos/                         # Módulos auxiliares (sistema previo)
-    ├── amenaza.py
-    ├── vulnerabilidad.py
-    ├── riesgo.py
-    └── bayes_volcan.py
+└── ANALISIS_TECNICO.md              # Análisis técnico detallado
 ```
 
 ## 🔬 Componentes Técnicos
