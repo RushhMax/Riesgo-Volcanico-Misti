@@ -1,5 +1,7 @@
 from red_bayesiana.red import TrueFuzzyBayesianNetwork
 import numpy as np
+import seaborn as sns
+import pandas as pd
 
 # Rangos exactos según especificación
 PARAMETROS = {
@@ -83,7 +85,7 @@ def evaluar_riesgo_volcanico(distrito):
 DISTRITOS = {
     "Alto Selva Alegre": {
         "nombre": "Alto Selva Alegre",
-        "historia": 9,
+        "historia":5,
         "densidad": 14500,
         "preparacion": 1.8,
         "proximidad": 8.5,
@@ -91,7 +93,7 @@ DISTRITOS = {
     },
     "Miraflores": {
         "nombre": "Miraflores",
-        "historia": 6,
+        "historia": 5,
         "densidad": 22000,
         "preparacion": 4.0,
         "proximidad": 12.1,
@@ -99,7 +101,7 @@ DISTRITOS = {
     },
     "Mariano Melgar": {
         "nombre": "Mariano Melgar",
-        "historia": 8,
+        "historia": 5,
         "densidad": 17500,
         "preparacion": 2.0,
         "proximidad": 9.0,
@@ -107,7 +109,7 @@ DISTRITOS = {
     },
     "Paucarpata": {
         "nombre": "Paucarpata",
-        "historia": 7,
+        "historia": 5,
         "densidad": 16000,
         "preparacion": 3.2,
         "proximidad": 10.0,
@@ -115,7 +117,7 @@ DISTRITOS = {
     },
     "Cercado de Arequipa": {
         "nombre": "Cercado de Arequipa",
-        "historia": 10,
+        "historia": 5,
         "densidad": 25000,
         "preparacion": 2.8,
         "proximidad": 7.5,
@@ -123,7 +125,7 @@ DISTRITOS = {
     },
     "Cayma": {
         "nombre": "Cayma",
-        "historia": 8,
+        "historia": 5,
         "densidad": 9800,
         "preparacion": 3.1,
         "proximidad": 10.2,
@@ -131,7 +133,7 @@ DISTRITOS = {
     },
     "Sachaca": {
         "nombre": "Sachaca",
-        "historia": 6,
+        "historia": 5,
         "densidad": 5200,
         "preparacion": 2.4,
         "proximidad": 11.8,
@@ -155,7 +157,7 @@ DISTRITOS = {
     },
     "Characato": {
         "nombre": "Characato",
-        "historia": 4,
+        "historia": 5,
         "densidad": 3100,
         "preparacion": 2.1,
         "proximidad": 16.7,
@@ -163,7 +165,7 @@ DISTRITOS = {
     },
     "Socabaya": {
         "nombre": "Socabaya",
-        "historia": 6,
+        "historia": 5,
         "densidad": 4100,
         "preparacion": 3.4,
         "proximidad": 14.5,
@@ -195,58 +197,113 @@ if __name__ == "__main__":
 
 import matplotlib.pyplot as plt
 
-# 1. Gráfico de barras de riesgo por distrito
 def graficar_riesgo_distritos(resultados):
     nombres = list(resultados.keys())
     valores = list(resultados.values())
 
-    plt.figure(figsize=(10, 6))
-    barras = plt.bar(nombres, valores, color=[
-        'red' if v > 7 else 'orange' if v > 4 else 'green' for v in valores
-    ])
+    # Configurar estilo
+    sns.set(style="whitegrid")
+    colores = ['#d73027' if v > 7 else '#fc8d59' if v > 4 else '#91cf60' for v in valores]
+
+    plt.figure(figsize=(12, 6))
+    barras = sns.barplot(x=nombres, y=valores, palette=colores)
+
     plt.ylim(0, 10)
-    plt.title("Nivel de Riesgo Volcánico por Distrito")
-    plt.ylabel("Riesgo (0 a 10)")
-    plt.xlabel("Distrito")
+    plt.title("🌋 Nivel de Riesgo Volcánico por Distrito", fontsize=16, weight='bold')
+    plt.ylabel("Riesgo (0 a 10)", fontsize=12)
+    plt.xlabel("Distrito", fontsize=12)
 
-    # Añadir etiquetas de valor
-    for bar in barras:
+    for i, bar in enumerate(barras.patches):
         yval = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width()/2.0, yval + 0.2, f'{yval:.2f}', ha='center', va='bottom')
+        barras.text(bar.get_x() + bar.get_width() / 2.0, yval + 0.2, f'{yval:.2f}', 
+                    ha='center', va='bottom', fontsize=10, weight='bold')
 
-    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.xticks(rotation=45)
     plt.tight_layout()
     plt.show()
 
-
-# 2. Radar chart de un distrito (comparación de variables)
 def graficar_radar_distrito(nombre, datos):
     etiquetas = ['historia', 'densidad', 'preparacion', 'proximidad', 'evacuacion']
     valores = [datos[e] for e in etiquetas]
 
-    # Normalizar valores (entre 0 y 1)
+    # Normalizar valores entre 0 y 1
     normalizados = [
         valores[i] / PARAMETROS[etiquetas[i]]['max'] for i in range(len(etiquetas))
     ]
-    normalizados += [normalizados[0]]  # Cerrar figura
+    normalizados += [normalizados[0]]
 
     etiquetas_legibles = [e.capitalize() for e in etiquetas]
     etiquetas_legibles += [etiquetas_legibles[0]]
 
     angulos = np.linspace(0, 2 * np.pi, len(etiquetas_legibles), endpoint=True)
 
-    fig, ax = plt.subplots(figsize=(6,6), subplot_kw={'projection': 'polar'})
-    ax.plot(angulos, normalizados, marker='o')
-    ax.fill(angulos, normalizados, alpha=0.25)
-    ax.set_thetagrids(angles=np.degrees(angulos), labels=etiquetas_legibles)
-    ax.set_title(f"Perfil del distrito: {nombre}", size=14)
+    fig, ax = plt.subplots(figsize=(7,7), subplot_kw=dict(polar=True))
+    ax.set_theta_offset(np.pi / 2)
+    ax.set_theta_direction(-1)
+
+    # Dibujar líneas/fondo
+    ax.set_rlabel_position(0)
+    ax.plot(angulos, normalizados, color='#1f77b4', linewidth=2, linestyle='solid', marker='o')
+    ax.fill(angulos, normalizados, color='#1f77b4', alpha=0.25)
+
+    # Etiquetas
+    ax.set_thetagrids(np.degrees(angulos), labels=etiquetas_legibles)
+    ax.set_title(f"📍 Perfil del distrito: {nombre}", size=16, weight='bold', y=1.1)
+
+    plt.tight_layout()
+    plt.show()
+    
+
+def graficar_heatmap_variables(DISTRITOS):
+    df = pd.DataFrame.from_dict(DISTRITOS, orient='index')
+    df = df[['historia', 'densidad', 'preparacion', 'proximidad', 'evacuacion']]
+    
+    plt.figure(figsize=(10, 6))
+    sns.heatmap(df, annot=True, cmap='YlOrRd', linewidths=0.5, fmt=".1f")
+    plt.title("🔍 Mapa de Calor de Variables por Distrito", fontsize=14, weight='bold')
+    plt.ylabel("Distrito")
+    plt.xlabel("Variable")
+    plt.tight_layout()
+    plt.show()
+
+def graficar_evolucion_riesgo(nombre, riesgo_tiempo):
+    dias = list(range(len(riesgo_tiempo)))
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(dias, riesgo_tiempo, marker='o', linestyle='-', color='tomato')
+    plt.title(f"📈 Evolución del Riesgo Volcánico - {nombre}", fontsize=14, weight='bold')
+    plt.xlabel("Días")
+    plt.ylabel("Riesgo (0-10)")
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
+def graficar_burbujas(DISTRITOS):
+    df = pd.DataFrame.from_dict(DISTRITOS, orient='index')
+    plt.figure(figsize=(10, 6))
+
+    plt.scatter(df['densidad'], df['preparacion'], 
+                s=df['proximidad']*10, 
+                alpha=0.6, c=df['historia'], cmap='coolwarm', edgecolors='k')
+
+    for i, name in enumerate(df.index):
+        plt.text(df['densidad'][i]+100, df['preparacion'][i], name, fontsize=9)
+
+    plt.xlabel("Densidad Poblacional")
+    plt.ylabel("Nivel de Preparación")
+    plt.title("⚠️ Distritos: Relación entre Densidad y Preparación\n(Tamaño: Proximidad, Color: Historia)", fontsize=13)
+    plt.colorbar(label='Actividad Histórica')
+    plt.grid(True, linestyle='--', alpha=0.4)
+    plt.tight_layout()
     plt.show()
 
 
-# 3. Ejecutar gráficos
+# Ejecutar gráfico de barras
 graficar_riesgo_distritos(resultados)
+graficar_heatmap_variables(DISTRITOS)
+graficar_burbujas(DISTRITOS)
 
-# (Opcional) Mostrar radar para los 2 más riesgosos
+# Radar para los 2 distritos más riesgosos
 top2 = sorted(resultados.items(), key=lambda x: x[1], reverse=True)[:2]
 for nombre, _ in top2:
     graficar_radar_distrito(nombre, DISTRITOS[nombre])
